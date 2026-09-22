@@ -1,4 +1,4 @@
-name: Constantia Android build
+name: Constantia Android release build
 
 on:
   workflow_dispatch:
@@ -13,10 +13,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      CONSTANTIA_KEYSTORE_BASE64: ${{ secrets.CONSTANTIA_KEYSTORE_BASE64 }}
+      CONSTANTIA_KEYSTORE_PASSWORD: ${{ secrets.CONSTANTIA_KEYSTORE_PASSWORD }}
+      CONSTANTIA_KEY_ALIAS: ${{ secrets.CONSTANTIA_KEY_ALIAS }}
+      CONSTANTIA_KEYSTORE_PATH: ${{ runner.temp }}/constantia-signing.jks
+      CONSTANTIA_EXPECTED_CERT_SHA256: "cd4f45ccfd54aae6f950dc586a0190f2668694698b559f9ea36ede174ba60549"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Require stable signing secrets
+        shell: bash
+        run: |
+          test -n "$CONSTANTIA_KEYSTORE_BASE64" || { echo "Missing CONSTANTIA_KEYSTORE_BASE64"; exit 1; }
+          test -n "$CONSTANTIA_KEYSTORE_PASSWORD" || { echo "Missing CONSTANTIA_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$CONSTANTIA_KEY_ALIAS" || { echo "Missing CONSTANTIA_KEY_ALIAS"; exit 1; }
+          printf '%s' "$CONSTANTIA_KEYSTORE_BASE64" | base64 --decode > "$CONSTANTIA_KEYSTORE_PATH"
+          chmod 600 "$CONSTANTIA_KEYSTORE_PATH"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v6
@@ -61,18 +76,31 @@ jobs:
       - name: Static preflight
         run: python3 tools/preflight.py
 
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug --stacktrace
+      - name: Engine tests
+        run: bash tools/run_engine_tests.sh
+
+      - name: Build stable release APK
+        run: gradle --no-daemon :app:assembleRelease --stacktrace
+
+      - name: Verify APK signature and signing certificate
+        shell: bash
+        run: |
+          APK="app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/37.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apksigner.txt"
+          ACTUAL=$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print tolower($2); exit}' "$RUNNER_TEMP/apksigner.txt")
+          test -n "$ACTUAL" || { echo "Could not read signer certificate SHA-256"; exit 1; }
+          test "$ACTUAL" = "$CONSTANTIA_EXPECTED_CERT_SHA256" || { echo "Unexpected signing certificate"; exit 1; }
 
       - name: Verify APK and generate checksum
-        run: python3 tools/verify_apk.py app/build/outputs/apk/debug/app-debug.apk
+        run: python3 tools/verify_apk.py app/build/outputs/apk/release/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: constantia-1.0.0-rc2-debug
+          name: constantia-1.0.0-rc3.1-release
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/debug/app-debug.apk.sha256
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/app-release.apk.sha256
           if-no-files-found: error
           retention-days: 14
