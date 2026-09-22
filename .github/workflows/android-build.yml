@@ -17,7 +17,6 @@ jobs:
       CONSTANTIA_KEYSTORE_BASE64: ${{ secrets.CONSTANTIA_KEYSTORE_BASE64 }}
       CONSTANTIA_KEYSTORE_PASSWORD: ${{ secrets.CONSTANTIA_KEYSTORE_PASSWORD }}
       CONSTANTIA_KEY_ALIAS: ${{ secrets.CONSTANTIA_KEY_ALIAS }}
-      CONSTANTIA_KEYSTORE_PATH: ${{ runner.temp }}/constantia-signing.jks
       CONSTANTIA_EXPECTED_CERT_SHA256: "cd4f45ccfd54aae6f950dc586a0190f2668694698b559f9ea36ede174ba60549"
 
     steps:
@@ -30,8 +29,10 @@ jobs:
           test -n "$CONSTANTIA_KEYSTORE_BASE64" || { echo "Missing CONSTANTIA_KEYSTORE_BASE64"; exit 1; }
           test -n "$CONSTANTIA_KEYSTORE_PASSWORD" || { echo "Missing CONSTANTIA_KEYSTORE_PASSWORD"; exit 1; }
           test -n "$CONSTANTIA_KEY_ALIAS" || { echo "Missing CONSTANTIA_KEY_ALIAS"; exit 1; }
-          printf '%s' "$CONSTANTIA_KEYSTORE_BASE64" | base64 --decode > "$CONSTANTIA_KEYSTORE_PATH"
-          chmod 600 "$CONSTANTIA_KEYSTORE_PATH"
+          KEYSTORE_PATH="$RUNNER_TEMP/constantia-signing.jks"
+          printf '%s' "$CONSTANTIA_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "CONSTANTIA_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v6
