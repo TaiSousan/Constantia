@@ -94,13 +94,13 @@ interface TrainingDao {
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun exerciseCount(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMuscles(items: List<MuscleEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertEquipment(items: List<EquipmentEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertExercises(items: List<ExerciseEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

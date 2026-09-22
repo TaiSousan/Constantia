@@ -67,19 +67,22 @@ class TrainingRepository(
     }
 
     suspend fun ensureCatalog() {
-        if (trainingDao.exerciseCount() == 0) {
-            trainingDao.insertMuscles(ExerciseCatalog.muscles)
-            trainingDao.insertEquipment(ExerciseCatalog.equipment)
-            trainingDao.insertExercises(ExerciseCatalog.exercises)
-            trainingDao.insertExerciseMuscles(ExerciseCatalog.exerciseMuscles)
-        }
-        if (trainingDao.getEquipmentAvailability().isEmpty()) {
-            ExerciseCatalog.equipment.forEach { item ->
+        // RC3 também sincroniza novos itens em instalações já existentes. Inserts de
+        // músculos/equipamentos/exercícios usam IGNORE para não substituir pais
+        // referenciados pelo histórico; vínculos musculares podem ser atualizados.
+        trainingDao.insertMuscles(ExerciseCatalog.muscles)
+        trainingDao.insertEquipment(ExerciseCatalog.equipment)
+        trainingDao.insertExercises(ExerciseCatalog.exercises)
+        trainingDao.insertExerciseMuscles(ExerciseCatalog.exerciseMuscles)
+
+        val existingAvailability = trainingDao.getEquipmentAvailability().map { it.equipmentCode }.toSet()
+        ExerciseCatalog.equipment
+            .filter { it.code !in existingAvailability }
+            .forEach { item ->
                 trainingDao.upsertEquipmentAvailability(
                     EquipmentAvailabilityEntity(item.code, item.commonAtSmartFit)
                 )
             }
-        }
     }
 
     suspend fun generateNewPlan(): Long? {
@@ -96,7 +99,9 @@ class TrainingRepository(
             val used = linkedSetOf<String>()
             val adapted = workout.exercises.mapNotNull { spec ->
                 val source = exerciseMap[spec.exerciseCode] ?: return@mapNotNull null
-                val blocked = adaptationEngine.isBlocked(source, restrictions) || source.equipmentCode !in availability
+                val blockedByRestriction = adaptationEngine.isBlocked(source, restrictions)
+                val blockedByEquipment = source.equipmentCode !in availability
+                val blocked = blockedByRestriction || blockedByEquipment
                 if (!blocked) {
                     used += source.code
                     spec
@@ -108,6 +113,7 @@ class TrainingRepository(
                         availableEquipmentCodes = availability,
                         restrictions = restrictions,
                         excludedExerciseCodes = used,
+                        excludedEquipmentCodes = if (blockedByEquipment) setOf(source.equipmentCode) else emptySet(),
                         limit = 1
                     ).firstOrNull()
                     if (replacement != null) {
@@ -246,7 +252,8 @@ class TrainingRepository(
             availableEquipmentCodes = available,
             restrictions = restrictions,
             excludedExerciseCodes = used,
-            limit = 4
+            excludedEquipmentCodes = setOf(detail.exercise.equipmentCode),
+            limit = 8
         )
     }
 
@@ -364,7 +371,7 @@ class TrainingRepository(
         val profile = profileDao.getTrainingProfile() ?: return null
         val templates = trainingDao.getTemplates(plan.id)
         if (templates.isEmpty()) return null
-        val days = scheduleEngine.resolveDays(profile.availableDaysPerWeek, profile.preferredTrainingDaysCsv)
+        val days = scheduleEngine.resolveScheduledDays(templates.size, profile.preferredTrainingDaysCsv)
         val dayIndex = days.indexOf(date.dayOfWeek)
         if (dayIndex < 0) return null
         val template = templates[dayIndex % templates.size]

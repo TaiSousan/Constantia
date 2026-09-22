@@ -31,7 +31,7 @@ check('compileSdk = 37' in app_build, 'compileSdk 37')
 check('targetSdk = 37' in app_build, 'targetSdk 37')
 check('minSdk = 26' in app_build, 'minSdk 26')
 check('JavaVersion.VERSION_17' in app_build, 'Java 17 bytecode')
-check('versionName = "1.0.0-rc2"' in app_build, 'versionName 1.0.0-rc2')
+check('versionName = "1.0.0-rc3.1"' in app_build, 'versionName 1.0.0-rc3.1')
 check('gradle-9.6.0-bin.zip' in wrapper, 'Gradle 9.6.0 distribution')
 check('distributionSha256Sum=' in wrapper, 'Gradle distribution checksum pinned')
 check('version = 6' in db, 'Room schema version 6')
@@ -40,10 +40,36 @@ for pair in ('2_3','3_4','4_5','5_6'):
 check('addMigrations(*DatabaseMigrations.ALL)' in db, 'Room migrations registered')
 check('fallbackToDestructiveMigration' not in db, 'No destructive Room fallback')
 
+
+extended_catalog=text('app/src/main/java/br/com/taina/constantia/core/repository/ExtendedExerciseCatalog.kt')
+core_catalog=text('app/src/main/java/br/com/taina/constantia/core/repository/ExerciseCatalog.kt')
+technique_engine=text('app/src/main/java/br/com/taina/constantia/engine/TrainingTechniqueEngine.kt')
+completion_feedback=text('app/src/main/java/br/com/taina/constantia/engine/CompletionFeedbackLibrary.kt')
+extended_count=extended_catalog.count('        Def("')
+core_count=core_catalog.count('        ex("')
+check(extended_count >= 100, f'Catálogo complementar amplo ({extended_count} exercícios)')
+check(core_count + extended_count >= 150, f'Catálogo total >=150 exercícios ({core_count + extended_count})')
+for technique in ('BI_SET','TRI_SET','ISOMETRY','DROP_SET','REST_PAUSE','TEMPO_CONTROLLED'):
+    check(technique in technique_engine, f'Técnica suportada: {technique}')
+check('Treino concluído' in completion_feedback and 'Sessão de estudo concluída' in completion_feedback, 'Feedback positivo de conclusão presente')
+check((ROOT/'EXERCISE_SOURCES.md').exists(), 'Referências do catálogo documentadas sem copiar mídia de terceiros')
+
 controller=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGateController.kt')
 service=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGateVpnService.kt')
 check('FocusGateVpnService.clearPersistedPlan(context)' in controller, 'Focus Gate clears persisted runtime plan on explicit stop')
 check('fun clearPersistedPlan(context: Context)' in service, 'Focus Gate exposes persisted-plan cleanup helper')
+
+
+manifest_text=text('app/src/main/AndroidManifest.xml')
+security_config=text('app/src/main/res/xml/network_security_config.xml')
+check('android:allowBackup="false"' in manifest_text, 'Backups de dados do app desativados')
+check('android:fullBackupContent="false"' in manifest_text, 'Full backup desativado')
+check('android:usesCleartextTraffic="false"' in manifest_text, 'Tráfego cleartext bloqueado no Manifest')
+check('cleartextTrafficPermitted="false"' in security_config, 'Network Security Config bloqueia cleartext')
+check('android.permission.INTERNET' not in manifest_text, 'Sem permissão INTERNET (local-first)')
+check('READ_EXTERNAL_STORAGE' not in manifest_text and 'WRITE_EXTERNAL_STORAGE' not in manifest_text and 'MANAGE_EXTERNAL_STORAGE' not in manifest_text, 'Sem permissões amplas de armazenamento externo')
+check('android:permission="android.permission.BIND_VPN_SERVICE"' in manifest_text, 'VpnService protegido por BIND_VPN_SERVICE')
+check(manifest_text.count('android:exported="false"') >= 4, 'Receivers/serviço interno não exportados')
 
 try:
     ET.parse(ROOT/'app/src/main/AndroidManifest.xml')
@@ -70,7 +96,7 @@ check(not missing_optin, 'Material3 exposed-menu opt-ins present')
 wrapper_jar=ROOT/'gradle/wrapper/gradle-wrapper.jar'
 check(wrapper_jar.exists(), 'Gradle wrapper JAR ausente; o workflow CI usa Gradle 9.6 instalado diretamente', warning=True)
 
-print('Constantia 1.0 RC2 preflight')
+print('Constantia 1.0 RC3.1 preflight')
 for x in ok: print(f'  OK   {x}')
 for x in warnings: print(f'  WARN {x}')
 for x in errors: print(f'  FAIL {x}')

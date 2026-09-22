@@ -8,6 +8,7 @@ import br.com.taina.constantia.core.focusgate.FocusGateController
 import br.com.taina.constantia.core.model.WorkoutMode
 import br.com.taina.constantia.core.repository.*
 import br.com.taina.constantia.engine.TrainingScheduleEngine
+import br.com.taina.constantia.engine.CompletionFeedbackLibrary
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,9 +29,12 @@ data class TrainingUiState(
     val restrictions: List<RestrictionEntity> = emptyList(),
     val exerciseLibrary: List<ExerciseEntity> = emptyList(),
     val trainingDays: Set<Int> = emptySet(),
+    val normalSessionMinutes: Int? = null,
+    val experienceLevel: String = "INTERMEDIATE",
     val substitutionForId: Long? = null,
     val substitutionCandidates: List<ExerciseEntity> = emptyList(),
     val message: String? = null,
+    val celebrationText: String? = null,
     val error: String? = null
 )
 
@@ -76,7 +80,7 @@ class TrainingViewModel(
             repository.trainingProfile.collect { profile ->
                 if (profile != null) {
                     val days = scheduleEngine.resolveDays(profile.availableDaysPerWeek, profile.preferredTrainingDaysCsv).map { it.value }.toSet()
-                    _state.value = _state.value.copy(trainingDays = days)
+                    _state.value = _state.value.copy(trainingDays = days, normalSessionMinutes = profile.normalSessionMinutes, experienceLevel = profile.experienceLevel)
                 }
             }
         }
@@ -164,7 +168,12 @@ class TrainingViewModel(
                     setsJob?.cancel()
                     val plan = _state.value.plan
                     if (plan != null) refreshPlan(plan)
-                    _state.value = _state.value.copy(activeWorkout = null, sessionSets = emptyList(), message = "Treino concluído. Histórico e progressão foram atualizados.")
+                    _state.value = _state.value.copy(
+                        activeWorkout = null,
+                        sessionSets = emptyList(),
+                        message = "Treino concluído. Histórico e progressão foram atualizados.",
+                        celebrationText = CompletionFeedbackLibrary.workout(active.session.id)
+                    )
                     focusGateController.reconcile()
                 }
                 .onFailure { _state.value = _state.value.copy(error = it.message ?: "Não foi possível concluir o treino.") }
@@ -204,6 +213,7 @@ class TrainingViewModel(
 
     fun rejectSuggestion(item: ProgressionSuggestionEntity) { viewModelScope.launch { repository.rejectSuggestion(item) } }
     fun clearMessage() { _state.value = _state.value.copy(message = null, error = null) }
+    fun clearCelebration() { _state.value = _state.value.copy(celebrationText = null) }
 
     class Factory(
         private val repository: TrainingRepository,

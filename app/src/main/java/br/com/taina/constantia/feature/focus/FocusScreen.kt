@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import br.com.taina.constantia.core.database.SubjectEntity
 import br.com.taina.constantia.core.database.StudyTopicEntity
 import br.com.taina.constantia.engine.StudyReviewEngine
+import br.com.taina.constantia.engine.CompletionFeedbackLibrary
 import kotlinx.coroutines.delay
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -151,6 +153,7 @@ private fun PomodoroCard(
     var interruptions by remember { mutableIntStateOf(0) }
     var selectedSubjectId by remember { mutableStateOf<Long?>(null) }
     var selectedTopicId by remember { mutableStateOf<Long?>(null) }
+    var completionMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(minutesText) {
         if (!running && startedAt == 0L) remainingSeconds = plannedMinutes * 60
@@ -173,10 +176,21 @@ private fun PomodoroCard(
                 startedAtMillis = startedAt,
                 completed = true
             )
+            completionMessage = CompletionFeedbackLibrary.study(startedAt)
             startedAt = 0L
             interruptions = 0
             remainingSeconds = plannedMinutes * 60
         }
+    }
+
+    completionMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { completionMessage = null },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+            title = { Text("Parabéns! Estudo concluído") },
+            text = { Text(message) },
+            confirmButton = { Button(onClick = { completionMessage = null }) { Text("Continuar") } }
+        )
     }
 
     Card(Modifier.fillMaxWidth()) {

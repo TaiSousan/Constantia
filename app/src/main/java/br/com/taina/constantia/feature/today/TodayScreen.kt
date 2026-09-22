@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.taina.constantia.core.model.FrequencyType
 import br.com.taina.constantia.core.repository.TodayActivity
+import br.com.taina.constantia.engine.CompletionFeedbackLibrary
 import java.time.DayOfWeek
+import kotlinx.coroutines.launch
 
 @Composable
 fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFocus: () -> Unit, onOpenNutrition: () -> Unit) {
@@ -27,9 +29,12 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
     var showAdd by remember { mutableStateOf(false) }
     var missedActivity by remember { mutableStateOf<TodayActivity?>(null) }
     val done = activities.count { it.completed }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Hoje") }) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = { FloatingActionButton(onClick = { showAdd = true }) { Icon(Icons.Default.Add, contentDescription = "Adicionar atividade") } }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -79,7 +84,17 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = item.completed, onCheckedChange = { viewModel.toggle(item, it) })
+                            Checkbox(
+                                checked = item.completed,
+                                onCheckedChange = { checked ->
+                                    viewModel.toggle(item, checked)
+                                    if (checked) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(CompletionFeedbackLibrary.activity(item.definition.id))
+                                        }
+                                    }
+                                }
+                            )
                             Column(Modifier.weight(1f)) {
                                 Text(item.definition.name, style = MaterialTheme.typography.bodyLarge)
                                 Text(item.definition.frequencyType.replace('_', ' ').lowercase(), style = MaterialTheme.typography.bodySmall)

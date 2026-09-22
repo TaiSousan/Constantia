@@ -22,37 +22,86 @@ class ExerciseAdaptationEngine {
         availableEquipmentCodes: Set<String>,
         restrictions: List<RestrictionEntity>,
         excludedExerciseCodes: Set<String> = emptySet(),
-        limit: Int = 4
+        excludedEquipmentCodes: Set<String> = emptySet(),
+        limit: Int = 8
     ): List<ExerciseEntity> {
         val linksByExercise = muscleLinks.groupBy { it.exerciseCode }
-        val sourceMuscles = linksByExercise[source.code].orEmpty().associate { it.muscleCode to it.contribution }
-        return exercises.asSequence()
+        val sourceLinks = linksByExercise[source.code].orEmpty()
+        val ranked = exercises.asSequence()
             .filter { it.active && it.code != source.code }
             .filter { it.code !in excludedExerciseCodes }
             .filter { it.equipmentCode in availableEquipmentCodes }
+            .filter { it.equipmentCode !in excludedEquipmentCodes }
             .filterNot { isBlocked(it, restrictions) }
-            .map { candidate -> candidate to score(source, candidate, sourceMuscles, linksByExercise[candidate.code].orEmpty()) }
-            .filter { it.second > 0 }
+            .map { candidate -> candidate to score(source, candidate, sourceLinks, linksByExercise[candidate.code].orEmpty()) }
+            .filter { it.second >= 35 }
             .sortedWith(compareByDescending<Pair<ExerciseEntity, Int>> { it.second }.thenBy { it.first.name })
-            .take(limit)
-            .map { it.first }
             .toList()
+
+        // Primeira passada: traz ao menos uma opção de famílias diferentes
+        // (máquina, peso livre, peso corporal, polia/faixa) quando existirem.
+        val diversified = mutableListOf<Pair<ExerciseEntity, Int>>()
+        val seenFamilies = mutableSetOf<String>()
+        ranked.forEach { item ->
+            val family = equipmentFamily(item.first.equipmentCode)
+            if (family !in seenFamilies && diversified.size < limit) {
+                diversified += item
+                seenFamilies += family
+            }
+        }
+        ranked.forEach { item ->
+            if (diversified.size >= limit) return@forEach
+            if (item !in diversified) diversified += item
+        }
+        return diversified.take(limit).map { it.first }
     }
 
     private fun score(
         source: ExerciseEntity,
         candidate: ExerciseEntity,
-        sourceMuscles: Map<String, Double>,
+        sourceLinks: List<ExerciseMuscleEntity>,
         candidateLinks: List<ExerciseMuscleEntity>
     ): Int {
         var score = 0
-        if (source.movementPattern == candidate.movementPattern) score += 100
-        val candidateMuscles = candidateLinks.associate { it.muscleCode to it.contribution }
-        sourceMuscles.forEach { (muscle, contribution) ->
-            val match = candidateMuscles[muscle] ?: 0.0
-            score += (40.0 * minOf(contribution, match)).toInt()
+        score += movementScore(source.movementPattern, candidate.movementPattern)
+
+        val candidateByMuscle = candidateLinks.associateBy { it.muscleCode }
+        sourceLinks.forEach { sourceLink ->
+            val match = candidateByMuscle[sourceLink.muscleCode] ?: return@forEach
+            val weight = if (sourceLink.role == "PRIMARY") 60.0 else 30.0
+            score += (weight * minOf(sourceLink.contribution, match.contribution)).toInt()
+            if (sourceLink.role == "PRIMARY" && match.role == "PRIMARY") score += 15
         }
-        if (source.equipmentCode == candidate.equipmentCode) score += 10
+
+        // Em substituição por aparelho ocupado, o chamador exclui o equipamento fonte.
+        // Fora desse caso, manter o mesmo equipamento recebe somente um bônus pequeno.
+        if (source.equipmentCode == candidate.equipmentCode) score += 5
         return score
+    }
+
+    private fun equipmentFamily(code: String): String = when (code) {
+        "DUMBBELLS", "BARBELL", "EZ_BAR", "KETTLEBELL", "PLATE", "LANDMINE" -> "FREE_WEIGHT"
+        "BODYWEIGHT", "PULLUP_BAR", "TRX", "BACK_EXTENSION" -> "BODYWEIGHT"
+        "CABLE", "BAND" -> "CABLE_BAND"
+        else -> "MACHINE"
+    }
+
+    private fun movementScore(a: String, b: String): Int {
+        if (a == b) return 120
+        val groups = listOf(
+            setOf("SQUAT", "KNEE_HIP_EXTENSION", "LUNGE", "ISOMETRIC_LOWER"),
+            setOf("HIP_HINGE", "HIP_EXTENSION"),
+            setOf("HORIZONTAL_PUSH", "INCLINE_PUSH", "HORIZONTAL_ADDUCTION"),
+            setOf("VERTICAL_PULL", "SHOULDER_EXTENSION", "SCAPULAR_DEPRESSION"),
+            setOf("HORIZONTAL_PULL", "SCAPULAR_CONTROL", "SHOULDER_HORIZONTAL_ABDUCTION"),
+            setOf("TRUNK_FLEXION", "CORE_STABILITY", "CORE_DYNAMIC", "ANTI_ROTATION", "TRUNK_ROTATION", "LATERAL_FLEXION", "HIP_FLEXION_CORE"),
+            setOf("SHOULDER_ABDUCTION", "SHOULDER_FLEXION", "SHOULDER_HORIZONTAL_ABDUCTION"),
+            setOf("ELBOW_FLEXION", "WRIST_FLEXION", "WRIST_EXTENSION", "GRIP_ISOMETRIC"),
+            setOf("HIP_ADDUCTION", "ISOMETRIC_ADDUCTION")
+        )
+        if (groups.any { a in it && b in it }) return 70
+        if (setOf(a, b) == setOf("VERTICAL_PULL", "HORIZONTAL_PULL")) return 35
+        if (setOf(a, b).all { it in setOf("SQUAT", "KNEE_EXTENSION", "KNEE_HIP_EXTENSION", "LUNGE") }) return 30
+        return 0
     }
 }

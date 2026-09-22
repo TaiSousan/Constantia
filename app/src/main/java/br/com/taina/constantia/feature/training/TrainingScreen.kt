@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +20,11 @@ import br.com.taina.constantia.core.database.ExerciseSetEntity
 import br.com.taina.constantia.core.database.ProgressionSuggestionEntity
 import br.com.taina.constantia.core.model.StagnationState
 import br.com.taina.constantia.core.repository.WorkoutExerciseDetail
+import br.com.taina.constantia.core.repository.ExerciseCatalog
 import br.com.taina.constantia.core.repository.WorkoutTemplateDetail
+import br.com.taina.constantia.engine.TrainingTechniqueEngine
+import br.com.taina.constantia.engine.TechniqueExerciseInput
+import br.com.taina.constantia.engine.TrainingTechniqueSuggestion
 import java.time.DayOfWeek
 import kotlin.math.roundToInt
 
@@ -30,6 +35,16 @@ fun TrainingScreen(viewModel: TrainingViewModel) {
         state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.activeWorkout != null -> WorkoutExecutionScreen(state, viewModel)
         else -> TrainingPlanScreen(state, viewModel)
+    }
+
+    state.celebrationText?.let { message ->
+        AlertDialog(
+            onDismissRequest = viewModel::clearCelebration,
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+            title = { Text("Parabéns! Treino concluído") },
+            text = { Text(message) },
+            confirmButton = { Button(onClick = viewModel::clearCelebration) { Text("Continuar") } }
+        )
     }
 }
 
@@ -53,7 +68,7 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
             OutlinedButton(onClick = { showRestrictions = true }) { Text("Restrições") }
         }
         OutlinedButton(onClick = { showDays = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Dias de treino: ${formatDays(state.trainingDays)}")
+            Text("Dias disponíveis: ${formatDays(state.trainingDays)}")
         }
 
         val plan = state.plan
@@ -83,16 +98,23 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(detail.template.name, style = MaterialTheme.typography.titleMedium)
-                        Text("~${detail.template.estimatedMinutes} min", style = MaterialTheme.typography.labelMedium)
+                        Text("~${detail.template.estimatedMinutes} min força", style = MaterialTheme.typography.labelMedium)
+                    }
+                    state.normalSessionMinutes?.takeIf { it > detail.template.estimatedMinutes }?.let { window ->
+                        val remaining = window - detail.template.estimatedMinutes
+                        if (remaining >= 5) {
+                            Text("Janela de $window min · cerca de $remaining min livres para cardio, aquecimento extra ou transições.", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                     detail.exercises.forEach { item ->
                         Column {
-                            Text("• ${item.exercise.name} — ${item.prescription.plannedSets}×${item.prescription.repMin}–${item.prescription.repMax} · RIR ${item.prescription.targetRirMin}–${item.prescription.targetRirMax}")
+                            Text("• ${item.exercise.name} — ${planExerciseSummary(item)}")
                             if (item.stagnation?.state == StagnationState.PLATEAU) {
                                 Text("  ↳ tendência de estagnação: revisar antes de aumentar demanda", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
                             }
                         }
                     }
+                    TechniqueSuggestionsBlock(techniqueSuggestions(detail.exercises, state.experienceLevel))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { viewModel.startNormal(detail) }) { Text("Iniciar") }
                         OutlinedButton(onClick = { quickFor = detail }) { Text("Tenho pouco tempo") }
@@ -120,7 +142,7 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
             title = { Text("Quanto tempo você tem?") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(20, 30, 40).forEach { minutes ->
+                    listOf(15, 20, 30, 40, 50).forEach { minutes ->
                         OutlinedButton(onClick = { viewModel.startQuick(template, minutes); quickFor = null }, modifier = Modifier.fillMaxWidth()) { Text("$minutes minutos") }
                     }
                     Text("O modo rápido preserva exercícios prioritários e reduz primeiro volume/acessórios.")
@@ -167,6 +189,7 @@ private fun RestrictionDialog(
     onRemove: (Long) -> Unit
 ) {
     var exercise by remember { mutableStateOf<ExerciseEntity?>(null) }
+    var exerciseQuery by remember { mutableStateOf("") }
     var bodyRegion by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var professional by remember { mutableStateOf(false) }
@@ -189,6 +212,13 @@ private fun RestrictionDialog(
                     }
                 }
                 HorizontalDivider()
+                OutlinedTextField(
+                    value = exerciseQuery,
+                    onValueChange = { exerciseQuery = it },
+                    label = { Text("Buscar exercício") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                     OutlinedTextField(
                         value = exercise?.name ?: "",
@@ -197,9 +227,16 @@ private fun RestrictionDialog(
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        state.exerciseLibrary.forEach { item ->
-                            DropdownMenuItem(text = { Text(item.name) }, onClick = { exercise = item; expanded = false })
-                        }
+                        state.exerciseLibrary
+                            .filter { exerciseQuery.isBlank() || it.name.contains(exerciseQuery, ignoreCase = true) }
+                            .take(40)
+                            .forEach { item ->
+                                DropdownMenuItem(text = { Text(item.name) }, onClick = {
+                                    exercise = item
+                                    exerciseQuery = item.name
+                                    expanded = false
+                                })
+                            }
                     }
                 }
                 OutlinedTextField(bodyRegion, { bodyRegion = it }, label = { Text("Região afetada (opcional)") }, modifier = Modifier.fillMaxWidth())
@@ -211,7 +248,7 @@ private fun RestrictionDialog(
                 Button(
                     onClick = {
                         exercise?.let { onAdd(it.code, bodyRegion, description, professional) }
-                        exercise = null; bodyRegion = ""; description = ""; professional = false
+                        exercise = null; exerciseQuery = ""; bodyRegion = ""; description = ""; professional = false
                     },
                     enabled = exercise != null,
                     modifier = Modifier.fillMaxWidth()
@@ -227,7 +264,7 @@ private fun TrainingDaysDialog(current: Set<Int>, onDismiss: () -> Unit, onSave:
     val selected = remember(current) { mutableStateListOf<Int>().also { it.addAll(current.sorted()) } }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dias de treino") },
+        title = { Text("Dias disponíveis para treinar") },
         text = {
             Column {
                 DayOfWeek.values().forEach { day ->
@@ -239,7 +276,7 @@ private fun TrainingDaysDialog(current: Set<Int>, onDismiss: () -> Unit, onSave:
                         Text(dayPt(day))
                     }
                 }
-                Text("A ordem dos dias é associada à ordem dos treinos da ficha.", style = MaterialTheme.typography.bodySmall)
+                Text("Você pode marcar mais dias do que a frequência da ficha. O Constantia distribui as sessões somente entre os dias necessários, tentando preservar folgas.", style = MaterialTheme.typography.bodySmall)
             }
         },
         confirmButton = { Button(onClick = { onSave(selected.toSet()) }, enabled = selected.isNotEmpty()) { Text("Salvar") } },
@@ -280,6 +317,7 @@ private fun WorkoutExecutionScreen(state: TrainingUiState, viewModel: TrainingVi
         state.message?.let { AssistChip(onClick = viewModel::clearMessage, label = { Text(it) }) }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (active.session.mode == "QUICK") Text("O plano original permanece intacto; hoje foram mantidos os exercícios de maior prioridade.", style = MaterialTheme.typography.bodySmall)
+        TechniqueSuggestionsBlock(techniqueSuggestions(active.exercises, state.experienceLevel))
 
         active.exercises.forEach { detail ->
             ExerciseExecutionCard(
@@ -315,13 +353,19 @@ private fun WorkoutExecutionScreen(state: TrainingUiState, viewModel: TrainingVi
         val current = active.exercises.firstOrNull { it.prescription.id == state.substitutionForId }
         AlertDialog(
             onDismissRequest = viewModel::dismissSubstitutes,
-            title = { Text("Máquina ocupada") },
+            title = { Text("Substituir nesta sessão") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Substituir ${current?.exercise?.name ?: "exercício"} somente nesta sessão por:")
+                Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Substituir ${current?.exercise?.name ?: "exercício"}. O equipamento atual é excluído da busca para priorizar alternativas realmente úteis.")
                     if (state.substitutionCandidates.isEmpty()) Text("Nenhuma alternativa compatível e disponível foi encontrada.")
+                    val equipmentNames = state.equipment.associate { it.code to it.name }
                     state.substitutionCandidates.forEach { item ->
-                        OutlinedButton(onClick = { viewModel.applySubstitute(item.code) }, modifier = Modifier.fillMaxWidth()) { Text(item.name) }
+                        OutlinedButton(onClick = { viewModel.applySubstitute(item.code) }, modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(item.name)
+                                Text(equipmentNames[item.equipmentCode] ?: item.equipmentCode, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
             },
@@ -344,10 +388,12 @@ private fun ExerciseExecutionCard(
                 Column(Modifier.weight(1f)) {
                     Text(detail.exercise.name, style = MaterialTheme.typography.titleMedium)
                     if (detail.exercise.code != detail.plannedExercise.code) Text("Hoje substitui: ${detail.plannedExercise.name}", style = MaterialTheme.typography.labelSmall)
-                    Text("${detail.selectedSets}×${detail.prescription.repMin}–${detail.prescription.repMax} · RIR ${detail.prescription.targetRirMin}–${detail.prescription.targetRirMax} · descanso ${detail.prescription.restSeconds}s", style = MaterialTheme.typography.bodySmall)
+                    val timed = isTimedExercise(detail.exercise)
+                    val unit = if (timed) "s" else "reps"
+                    Text("${detail.selectedSets}×${detail.prescription.repMin}–${detail.prescription.repMax} $unit · RIR ${detail.prescription.targetRirMin}–${detail.prescription.targetRirMax} · descanso ${detail.prescription.restSeconds}s", style = MaterialTheme.typography.bodySmall)
                     detail.prescription.targetLoadKg?.let { Text("Carga de referência: ${formatKg(it)}", style = MaterialTheme.typography.labelMedium) }
                     if (detail.previousSets.isNotEmpty() && detail.exercise.code == detail.plannedExercise.code) {
-                        Text("Última sessão: ${formatPrevious(detail.previousSets)}", style = MaterialTheme.typography.labelSmall)
+                        Text("Última sessão: ${formatPrevious(detail.previousSets, timed)}", style = MaterialTheme.typography.labelSmall)
                     }
                     detail.stagnation?.takeIf { it.state != StagnationState.NONE }?.let {
                         Text(if (it.state == StagnationState.PLATEAU) "Possível estagnação: ${it.rationale}" else it.rationale, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
@@ -355,26 +401,27 @@ private fun ExerciseExecutionCard(
                 }
                 IconButton(onClick = onInfo) { Icon(Icons.Default.Info, contentDescription = "Como fazer") }
             }
-            OutlinedButton(onClick = onBusy, modifier = Modifier.fillMaxWidth()) { Text("Máquina ocupada / substituir hoje") }
+            OutlinedButton(onClick = onBusy, modifier = Modifier.fillMaxWidth()) { Text("Equipamento ocupado / substituir hoje") }
+            val timed = isTimedExercise(detail.exercise)
             repeat(detail.selectedSets) { idx ->
                 val setIndex = idx + 1
                 val saved = savedSets.firstOrNull { it.setIndex == setIndex }
-                SetInputRow(setIndex, saved, detail.prescription.targetRirMax, onSave)
+                SetInputRow(setIndex, saved, detail.prescription.targetRirMax, timed, onSave)
             }
         }
     }
 }
 
 @Composable
-private fun SetInputRow(setIndex: Int, saved: ExerciseSetEntity?, initialRir: Int, onSave: (Int, String, String, Int) -> Unit) {
-    var load by remember(saved?.id) { mutableStateOf(saved?.loadKg?.let { cleanNumber(it) } ?: "") }
+private fun SetInputRow(setIndex: Int, saved: ExerciseSetEntity?, initialRir: Int, timed: Boolean, onSave: (Int, String, String, Int) -> Unit) {
+    var load by remember(saved?.id, timed) { mutableStateOf(saved?.loadKg?.let { cleanNumber(it) } ?: if (timed) "0" else "") }
     var reps by remember(saved?.id) { mutableStateOf(saved?.reps?.toString() ?: "") }
     var rir by remember(saved?.id) { mutableIntStateOf(saved?.rir ?: initialRir) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Série $setIndex${if (saved != null) " · salva" else ""}", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(load, { load = it }, label = { Text("kg") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(reps, { reps = it }, label = { Text("reps") }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(load, { load = it }, label = { Text(if (timed) "kg extra" else "kg") }, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(reps, { reps = it }, label = { Text(if (timed) "seg" else "reps") }, singleLine = true, modifier = Modifier.weight(1f))
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("RIR $rir", modifier = Modifier.width(48.dp))
@@ -384,7 +431,63 @@ private fun SetInputRow(setIndex: Int, saved: ExerciseSetEntity?, initialRir: In
     }
 }
 
-private fun formatPrevious(sets: List<ExerciseSetEntity>): String = sets.joinToString(" · ") { "${cleanNumber(it.loadKg)}×${it.reps} (RIR ${it.rir})" }
+private fun formatPrevious(sets: List<ExerciseSetEntity>, timed: Boolean): String = sets.joinToString(" · ") {
+    if (timed) {
+        val load = if (it.loadKg > 0) "${cleanNumber(it.loadKg)} kg · " else ""
+        "$load${it.reps}s (RIR ${it.rir})"
+    } else {
+        "${cleanNumber(it.loadKg)}×${it.reps} (RIR ${it.rir})"
+    }
+}
+
+private val techniqueEngine = TrainingTechniqueEngine()
+
+@Composable
+private fun TechniqueSuggestionsBlock(items: List<TrainingTechniqueSuggestion>) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        HorizontalDivider()
+        Text("Técnicas opcionais", style = MaterialTheme.typography.labelLarge)
+        Text(
+            "Bi-set, tri-set e métodos de intensificação são sugestões; não mudam sua ficha nem a progressão automaticamente.",
+            style = MaterialTheme.typography.labelSmall
+        )
+        items.take(4).forEach { item ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(item.title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                    Text(item.instruction, style = MaterialTheme.typography.bodySmall)
+                    Text(item.rationale, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+private fun techniqueSuggestions(details: List<WorkoutExerciseDetail>, experienceLevel: String): List<TrainingTechniqueSuggestion> =
+    techniqueEngine.suggest(
+        details.map { detail ->
+            TechniqueExerciseInput(
+                code = detail.exercise.code,
+                name = detail.exercise.name,
+                movementPattern = detail.exercise.movementPattern,
+                equipmentCode = detail.exercise.equipmentCode,
+                priorityScore = detail.prescription.priorityScore,
+                timed = isTimedExercise(detail.exercise)
+            )
+        },
+        experienceLevel = experienceLevel
+    )
+
+private fun isTimedExercise(exercise: ExerciseEntity): Boolean =
+    exercise.code in ExerciseCatalog.timedExerciseCodes ||
+        exercise.movementPattern in setOf("CORE_STABILITY", "ISOMETRIC_LOWER", "ISOMETRIC_ADDUCTION", "GRIP_ISOMETRIC", "LOADED_CARRY")
+
+private fun planExerciseSummary(item: WorkoutExerciseDetail): String {
+    val unit = if (isTimedExercise(item.exercise)) "s" else "reps"
+    return "${item.prescription.plannedSets}×${item.prescription.repMin}–${item.prescription.repMax} $unit · RIR ${item.prescription.targetRirMin}–${item.prescription.targetRirMax}"
+}
+
 private fun formatDays(values: Set<Int>): String = if (values.isEmpty()) "automático" else values.sorted().joinToString(", ") { dayPt(DayOfWeek.of(it)).take(3) }
 private fun dayPt(day: DayOfWeek): String = when (day) {
     DayOfWeek.MONDAY -> "Segunda"

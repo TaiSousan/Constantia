@@ -265,13 +265,30 @@ A próxima etapa deixa de adicionar módulos grandes e passa a ser **estabiliza�
 
 A partir da v1.0, a prioridade será **confiabilidade e uso diário**, não adicionar funcionalidades novas.
 
-## 1.0 RC2 — estabilização para o primeiro APK
+## 1.0 RC3.1 — estabilização para uso real
 
-- `versionName`: `1.0.0-rc2`
+- `versionName`: `1.0.0-rc3.1`
 - build reproduzível com Gradle 9.6.0 + JDK 17 + Android SDK 37;
 - `tools/build_android.sh` verifica ambiente e compila localmente;
 - `tools/verify_apk.py` valida o APK e gera SHA-256;
-- workflow GitHub Actions compila, valida e publica APK + checksum;
-- o workflow não depende de `gradle-wrapper.jar`, contornando a limitação do pacote atual.
+- workflow GitHub Actions compila, valida assinatura e publica APK release + checksum;
+- o workflow não depende de `gradle-wrapper.jar`, contornando a limitação do pacote atual;
+- o CI exige assinatura estável por secrets do GitHub e rejeita builds com certificado diferente do esperado.
 
-A RC2 não adiciona funcionalidades de produto. O objetivo é exclusivamente chegar a um APK compilado e testável sem alterar o escopo do MVP.
+A RC2 serviu como primeiro APK de teste. A RC3/RC3.1 incorpora os ajustes encontrados no uso real e passa a gerar um APK `release` assinado de forma estável.
+
+
+## RC3.1 — validação em aparelho, catálogo ampliado e endurecimento local
+
+- catálogo de treino ampliado para mais de 150 exercícios, incluindo máquinas, pesos livres, peso corporal, faixas, kettlebells e TRX;
+- biblioteca de técnicas opcionais: bi-set/superset, tri-set, isometria, drop-set, rest-pause e tempo controlado;
+- técnicas de maior fadiga não são aplicadas automaticamente e ficam limitadas a acessórios compatíveis;
+- exercícios isométricos passam a ser exibidos e registrados em segundos;
+- substituição temporária exclui o equipamento ocupado e ranqueia por padrão de movimento + musculatura;
+- estimativas de duração mais realistas e indicação da janela restante para cardio/transições;
+- dias marcados passam a representar disponibilidade; a agenda usa somente a quantidade de sessões da ficha;
+- parser alimentar ampliado para tapioca, queijo prato, café, açúcar e outras medidas/alimentos comuns;
+- backup do app desativado, tráfego HTTP em claro bloqueado e checagens de segurança adicionadas ao preflight;
+- o Manifest continua sem permissão `INTERNET` e sem permissões de armazenamento externo;
+- feedback curto de conclusão para treino, estudo e atividades, mantendo o foco em competência e progresso em vez de recompensas artificiais;
+- referências externas do catálogo documentadas em `EXERCISE_SOURCES.md`, sem incorporar GIFs/imagens de terceiros.

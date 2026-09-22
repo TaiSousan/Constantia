@@ -3,77 +3,41 @@ package br.com.taina.constantia.core.repository
 import br.com.taina.constantia.core.database.FoodEntity
 
 /**
- * Catálogo inicial offline com referências TBCA consultadas em setembro/2026.
- * Os valores são por 100 g da parte comestível. O usuário pode criar alimentos
- * personalizados quando rótulo/marca/preparo forem diferentes.
+ * Catálogo inicial offline. Valores por 100 g da parte comestível.
+ * Fontes TBCA quando há código disponível; alimentos de rótulo variável ficam
+ * explicitamente marcados como estimativa genérica.
  */
 object NutritionCatalog {
     val starterFoods = listOf(
-        FoodEntity(
-            name = "Arroz branco cozido, sem óleo",
-            kcalPer100g = 131.0,
-            proteinPer100g = 2.38,
-            carbsPer100g = 30.0,
-            fatPer100g = 0.41,
-            defaultMeasureName = "colher de sopa cheia",
-            defaultMeasureGrams = 20.0,
-            sourceCode = "BRC0018A",
-            sourceLabel = "TBCA"
-        ),
-        FoodEntity(
-            name = "Peito de frango grelhado, sem pele e sem óleo",
-            kcalPer100g = 149.0,
-            proteinPer100g = 31.8,
-            carbsPer100g = 0.0,
-            fatPer100g = 2.46,
-            defaultMeasureName = "filé médio",
-            defaultMeasureGrams = 110.0,
-            sourceCode = "BRC0230F",
-            sourceLabel = "TBCA"
-        ),
-        FoodEntity(
-            name = "Ovo de galinha cozido",
-            kcalPer100g = 125.0,
-            proteinPer100g = 10.4,
-            carbsPer100g = 1.38,
-            fatPer100g = 8.70,
-            defaultMeasureName = "unidade média",
-            defaultMeasureGrams = 50.0,
-            sourceCode = "BRC0010J",
-            sourceLabel = "TBCA"
-        ),
-        FoodEntity(
-            name = "Banana prata",
-            kcalPer100g = 107.0,
-            proteinPer100g = 1.11,
-            carbsPer100g = 25.9,
-            fatPer100g = 0.28,
-            defaultMeasureName = "unidade/fatia média",
-            defaultMeasureGrams = 40.0,
-            sourceCode = "BRC0011C",
-            sourceLabel = "TBCA"
-        ),
-        FoodEntity(
-            name = "Queijo Minas frescal",
-            kcalPer100g = 243.0,
-            proteinPer100g = 15.9,
-            carbsPer100g = 3.02,
-            fatPer100g = 18.6,
-            defaultMeasureName = "fatia média",
-            defaultMeasureGrams = 30.0,
-            sourceCode = "BRC0052G",
-            sourceLabel = "TBCA"
-        ),
-        FoodEntity(
-            name = "Pão francês de padaria",
-            kcalPer100g = 300.0,
-            proteinPer100g = 9.83,
-            carbsPer100g = 61.6,
-            fatPer100g = 2.12,
-            defaultMeasureName = "unidade média",
-            defaultMeasureGrams = 50.0,
-            sourceCode = "BRC0002A",
-            sourceLabel = "TBCA"
-        )
+        food("Arroz branco cozido, sem óleo", 131.0, 2.38, 30.0, 0.41, "colher de sopa cheia", 20.0, "BRC0018A", "TBCA"),
+        food("Peito de frango grelhado, sem pele e sem óleo", 149.0, 31.8, 0.0, 2.46, "filé médio", 110.0, "BRC0230F", "TBCA"),
+        food("Ovo de galinha cozido", 125.0, 10.4, 1.38, 8.70, "unidade média", 50.0, "BRC0010J", "TBCA"),
+        food("Banana prata", 107.0, 1.11, 25.9, 0.28, "unidade/fatia média", 40.0, "BRC0011C", "TBCA"),
+        food("Queijo Minas frescal", 243.0, 15.9, 3.02, 18.6, "fatia média", 30.0, "BRC0052G", "TBCA"),
+        food("Queijo prato", 346.0, 24.2, 0.20, 27.6, "fatia média", 20.0, "BRC0064G", "TBCA"),
+        food("Pão francês de padaria", 300.0, 9.83, 61.6, 2.12, "unidade média", 50.0, "BRC0002A", "TBCA"),
+        food("Açúcar cristal", 400.0, 0.32, 99.6, 0.0, "colher de chá cheia", 5.0, "BRC0005K", "TBCA"),
+        food("Café preto, infusão 10%, sem açúcar", 10.0, 0.67, 1.68, 0.07, "xícara de chá", 200.0, "BRC0007H", "TBCA"),
+        food("Tapioca sem manteiga e sem recheio", 289.0, 0.36, 71.9, 0.0, "colher de sopa de goma", 15.0, "BRC0906B", "TBCA · aproximação para goma hidratada"),
+        food("Leite de vaca desnatado", 34.0, 3.4, 5.0, 0.1, "copo", 200.0, "BRC0070G", "TBCA"),
+        food("Iogurte natural desnatado", 41.0, 4.1, 5.8, 0.4, "pote", 170.0, "REF-Iogurte", "Referência genérica; conferir rótulo"),
+        food("Aveia em flocos", 394.0, 13.9, 66.6, 8.5, "colher de sopa", 15.0, "REF-Aveia", "Referência genérica"),
+        food("Whey protein em pó", 400.0, 80.0, 8.0, 6.0, "medidor", 30.0, "REF-Whey", "Genérico; substituir pelo rótulo da marca"),
+        food("Alface crua", 14.0, 1.3, 2.4, 0.2, "folha média", 10.0, "REF-Alface", "Referência genérica")
+    )
+
+    private fun food(
+        name: String, kcal: Double, protein: Double, carbs: Double, fat: Double,
+        measureName: String, measureGrams: Double, sourceCode: String, sourceLabel: String
+    ) = FoodEntity(
+        name = name,
+        kcalPer100g = kcal,
+        proteinPer100g = protein,
+        carbsPer100g = carbs,
+        fatPer100g = fat,
+        defaultMeasureName = measureName,
+        defaultMeasureGrams = measureGrams,
+        sourceCode = sourceCode,
+        sourceLabel = sourceLabel
     )
 }

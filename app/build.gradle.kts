@@ -12,10 +12,36 @@ android {
         applicationId = "br.com.taina.constantia"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "1.0.0-rc2"
+        versionCode = 13
+        versionName = "1.0.0-rc3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    val stableKeystorePath = System.getenv("CONSTANTIA_KEYSTORE_PATH")
+    val stableKeystorePassword = System.getenv("CONSTANTIA_KEYSTORE_PASSWORD")
+    val stableKeyAlias = System.getenv("CONSTANTIA_KEY_ALIAS")
+    val stableSigning = if (!stableKeystorePath.isNullOrBlank() && !stableKeystorePassword.isNullOrBlank() && !stableKeyAlias.isNullOrBlank()) {
+        signingConfigs.create("constantiaStable") {
+            storeFile = file(stableKeystorePath)
+            storePassword = stableKeystorePassword
+            keyAlias = stableKeyAlias
+            keyPassword = stableKeystorePassword
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    } else null
+
+    buildTypes {
+        getByName("debug") {
+            stableSigning?.let { signingConfig = it }
+        }
+        getByName("release") {
+            isDebuggable = false
+            stableSigning?.let { signingConfig = it }
+        }
     }
 
     buildFeatures {

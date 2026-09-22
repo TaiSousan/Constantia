@@ -95,7 +95,8 @@ class ProgressRepository(
         val profile = profileDao.getTrainingProfile()
         val activePlan = trainingDao.getActivePlan()
         val planned = if (profile == null || activePlan == null) 0 else {
-            val days = trainingScheduleEngine.resolveDays(profile.availableDaysPerWeek, profile.preferredTrainingDaysCsv)
+            val templates = trainingDao.getTemplates(activePlan.id)
+            val days = trainingScheduleEngine.resolveScheduledDays(templates.size.coerceAtLeast(1), profile.preferredTrainingDaysCsv)
             generateSequence(weekStart) { it.plusDays(1) }
                 .takeWhile { !it.isAfter(periodEnd) }
                 .count { it.dayOfWeek in days }

@@ -14,7 +14,9 @@ class NutritionRepository(
     private val profileDao: ProfileDao
 ) {
     suspend fun ensureReady() {
-        if (nutritionDao.foodCount() == 0) nutritionDao.insertFoods(NutritionCatalog.starterFoods)
+        // ON CONFLICT IGNORE + índice único por nome permite adicionar novos itens
+        // do catálogo sem duplicar os que a instalação já possuía.
+        nutritionDao.insertFoods(NutritionCatalog.starterFoods)
     }
 
     fun observeFoods(): Flow<List<FoodEntity>> = nutritionDao.observeFoods()
@@ -84,7 +86,7 @@ class NutritionRepository(
             )
         )
         val estimate = when (unitMode) {
-            "GRAMS" -> NutritionEngine.estimateFromGrams(food, amount)
+            "GRAMS", "ML" -> NutritionEngine.estimateFromGrams(food, amount)
             "MEASURE" -> NutritionEngine.estimateFromMeasure(food, amount)
             else -> NutritionEngine.estimateFree(food, amount)
         }
@@ -96,6 +98,7 @@ class NutritionRepository(
                 amountValue = amount,
                 amountUnit = when (unitMode) {
                     "GRAMS" -> "g"
+                    "ML" -> "ml"
                     "MEASURE" -> food.defaultMeasureName
                     else -> "g estimados"
                 },

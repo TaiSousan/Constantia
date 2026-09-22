@@ -5,9 +5,8 @@ import java.text.Normalizer
 import kotlin.math.round
 
 /**
- * Parser local-first para descrições simples de refeições em português.
- * Ele nunca inventa um alimento ausente do catálogo: trechos não reconhecidos
- * permanecem em [MealParseResult.unmatchedFragments] para revisão humana.
+ * Parser local-first para descrições de refeições em português.
+ * Trechos não reconhecidos continuam visíveis para revisão humana.
  */
 data class ParsedMealItem(
     val food: FoodEntity,
@@ -40,13 +39,24 @@ data class MealParseResult(
 class SmartMealParser {
     private data class AliasRule(val aliases: List<String>, val foodNameContains: String)
 
+    // Regras específicas vêm antes das genéricas para evitar, por exemplo,
+    // interpretar "queijo prato" como queijo Minas.
     private val rules = listOf(
-        AliasRule(listOf("arroz", "arroz branco"), "arroz branco"),
-        AliasRule(listOf("frango", "peito de frango", "file de frango"), "peito de frango"),
-        AliasRule(listOf("ovo", "ovos"), "ovo de galinha"),
-        AliasRule(listOf("banana", "banana prata"), "banana prata"),
-        AliasRule(listOf("queijo minas", "minas frescal", "queijo"), "queijo minas"),
-        AliasRule(listOf("pao frances", "pao", "frances"), "pão francês")
+        AliasRule(listOf("queijo prato"), "queijo prato"),
+        AliasRule(listOf("queijo minas", "minas frescal"), "queijo minas"),
+        AliasRule(listOf("goma de tapioca", "goma tapioca", "tapioca"), "tapioca sem manteiga"),
+        AliasRule(listOf("cafe preto", "cafe coado", "cafe"), "café preto"),
+        AliasRule(listOf("acucar cristal", "acucar"), "açúcar cristal"),
+        AliasRule(listOf("leite desnatado"), "leite de vaca desnatado"),
+        AliasRule(listOf("iogurte natural desnatado", "iogurte desnatado"), "iogurte natural desnatado"),
+        AliasRule(listOf("whey protein", "whey"), "whey protein"),
+        AliasRule(listOf("aveia", "aveia em flocos"), "aveia em flocos"),
+        AliasRule(listOf("alface"), "alface crua"),
+        AliasRule(listOf("arroz branco", "arroz"), "arroz branco"),
+        AliasRule(listOf("peito de frango", "file de frango", "frango"), "peito de frango"),
+        AliasRule(listOf("ovos", "ovo"), "ovo de galinha"),
+        AliasRule(listOf("banana prata", "banana"), "banana prata"),
+        AliasRule(listOf("pao frances", "pao"), "pão francês")
     )
 
     fun parse(text: String, foods: List<FoodEntity>): MealParseResult {
@@ -57,7 +67,7 @@ class SmartMealParser {
 
         for (fragment in fragments) {
             val normalized = normalize(fragment)
-            val rule = rules.firstOrNull { r -> r.aliases.any { normalizeAlias -> normalized.contains(normalize(normalizeAlias)) } }
+            val rule = rules.firstOrNull { r -> r.aliases.any { alias -> normalized.contains(normalize(alias)) } }
             val food = rule?.let { r -> foods.firstOrNull { normalize(it.name).contains(normalize(r.foodNameContains)) } }
             if (food == null) {
                 if (fragment.isNotBlank()) unmatched += fragment.trim()
@@ -66,12 +76,18 @@ class SmartMealParser {
             parsed += parseAmount(fragment, food)
         }
 
-        return MealParseResult(parsed, unmatched, calculateRange(parsed))
+        // "Crepioca" é o nome da preparação; se ovo e tapioca foram detalhados no
+        // próprio texto, não vale exibir o nome da preparação como erro residual.
+        val hasEgg = parsed.any { normalize(it.food.name).contains("ovo de galinha") }
+        val hasTapioca = parsed.any { normalize(it.food.name).contains("tapioca") }
+        val cleanedUnmatched = unmatched.filterNot { normalize(it) == "crepioca" && hasEgg && hasTapioca }
+
+        return MealParseResult(parsed, cleanedUnmatched, calculateRange(parsed))
     }
 
     private fun splitFragments(text: String): List<String> = text
         .replace(";", ",")
-        .split(Regex(",|\\s+e\\s+"))
+        .split(Regex(",|\\s+e\\s+|\\s+com\\s+", RegexOption.IGNORE_CASE))
         .map { it.trim() }
         .filter { it.isNotBlank() }
 
@@ -83,11 +99,21 @@ class SmartMealParser {
             return item(food, grams, "GRAMS", "${trimNumber(grams)} g", grams, grams, grams, NutritionConfidence.HIGH)
         }
 
+        val mlMatch = Regex("(\\d+(?:[.,]\\d+)?)\\s*ml\\b", RegexOption.IGNORE_CASE).find(fragment)
+        if (mlMatch != null && isLiquid(food)) {
+            val ml = mlMatch.groupValues[1].replace(',', '.').toDoubleOrNull()?.coerceAtLeast(1.0) ?: food.defaultMeasureGrams
+            return item(food, ml, "ML", "${trimNumber(ml)} ml", ml, ml * 0.98, ml * 1.02, NutritionConfidence.MEDIUM)
+        }
+
         val number = Regex("\\b(\\d+(?:[.,]\\d+)?)\\b").find(fragment)?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull()
             ?: wordNumber(normalized)
         val count = (number ?: 1.0).coerceIn(0.25, 20.0)
-        val measureWords = listOf("colher", "colheres", "fatia", "fatias", "unidade", "unidades", "file", "files")
-        val hasMeasure = measureWords.any { normalized.contains(it) } || food.defaultMeasureName.split(' ').any { normalize(it).length > 3 && normalized.contains(normalize(it)) }
+        val measureWords = listOf(
+            "colher", "colheres", "fatia", "fatias", "unidade", "unidades", "file", "files",
+            "xicara", "xicara", "copo", "copos", "pote", "potes", "medidor", "medidores", "folha", "folhas"
+        )
+        val defaultWords = food.defaultMeasureName.split(' ').map(::normalize).filter { it.length > 3 }
+        val hasMeasure = measureWords.any { normalized.contains(it) } || defaultWords.any { normalized.contains(it) }
 
         return if (hasMeasure || number != null) {
             val grams = count * food.defaultMeasureGrams
@@ -102,6 +128,11 @@ class SmartMealParser {
                 grams * 0.70, grams * 1.30, NutritionConfidence.LOW
             )
         }
+    }
+
+    private fun isLiquid(food: FoodEntity): Boolean {
+        val name = normalize(food.name)
+        return listOf("cafe", "leite", "bebida").any(name::contains)
     }
 
     private fun item(
@@ -136,6 +167,7 @@ class SmartMealParser {
         Regex("\\b(dois|duas)\\b").containsMatchIn(normalized) -> 2.0
         Regex("\\btres\\b").containsMatchIn(normalized) -> 3.0
         Regex("\\bquatro\\b").containsMatchIn(normalized) -> 4.0
+        Regex("\\bcinco\\b").containsMatchIn(normalized) -> 5.0
         else -> null
     }
 

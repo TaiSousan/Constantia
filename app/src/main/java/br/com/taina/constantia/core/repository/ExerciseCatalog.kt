@@ -5,20 +5,32 @@ import br.com.taina.constantia.core.database.ExerciseEntity
 import br.com.taina.constantia.core.database.ExerciseMuscleEntity
 import br.com.taina.constantia.core.database.MuscleEntity
 
+/**
+ * Catálogo offline de exercícios.
+ *
+ * RC3 amplia alternativas em máquinas, pesos livres e peso corporal para que a
+ * substituição temporária não fique presa ao mesmo aparelho que está ocupado.
+ */
 object ExerciseCatalog {
     val muscles = listOf(
         MuscleEntity("QUADS", "Quadríceps", "INFERIOR"),
         MuscleEntity("HAMSTRINGS", "Posteriores de coxa", "INFERIOR"),
         MuscleEntity("GLUTES", "Glúteos", "INFERIOR"),
+        MuscleEntity("ADDUCTORS", "Adutores", "INFERIOR"),
         MuscleEntity("CALVES", "Panturrilhas", "INFERIOR"),
         MuscleEntity("CHEST", "Peitoral", "SUPERIOR"),
         MuscleEntity("LATS", "Latíssimo do dorso", "SUPERIOR"),
         MuscleEntity("UPPER_BACK", "Costas superiores", "SUPERIOR"),
         MuscleEntity("FRONT_DELTS", "Deltoide anterior", "SUPERIOR"),
         MuscleEntity("SIDE_DELTS", "Deltoide lateral", "SUPERIOR"),
+        MuscleEntity("REAR_DELTS", "Deltoide posterior", "SUPERIOR"),
         MuscleEntity("TRICEPS", "Tríceps", "SUPERIOR"),
         MuscleEntity("BICEPS", "Bíceps", "SUPERIOR"),
-        MuscleEntity("CORE", "Core", "TRONCO")
+        MuscleEntity("CORE", "Core", "TRONCO"),
+        MuscleEntity("LOWER_BACK", "Lombar / eretores da espinha", "TRONCO"),
+        MuscleEntity("TRAPS", "Trapézio", "SUPERIOR"),
+        MuscleEntity("FOREARMS", "Antebraços / pegada", "SUPERIOR"),
+        MuscleEntity("HIP_FLEXORS", "Flexores do quadril", "INFERIOR")
     )
 
     val equipment = listOf(
@@ -39,154 +51,241 @@ object ExerciseCatalog {
         EquipmentEntity("DUMBBELLS", "Halteres", "FREE_WEIGHT", true, 2.0),
         EquipmentEntity("BARBELL", "Barra e anilhas", "FREE_WEIGHT", true, 2.5),
         EquipmentEntity("BENCH", "Banco ajustável", "FREE_WEIGHT", true, null),
-        EquipmentEntity("BODYWEIGHT", "Peso corporal", "BODYWEIGHT", true, null)
+        EquipmentEntity("PULLUP_BAR", "Barra fixa / estação de puxada", "BODYWEIGHT", true, null),
+        EquipmentEntity("BODYWEIGHT", "Peso corporal", "BODYWEIGHT", true, null),
+        EquipmentEntity("HACK_SQUAT", "Hack squat", "MACHINE", false, 5.0),
+        EquipmentEntity("HORIZONTAL_LEG_PRESS", "Leg press horizontal", "MACHINE", false, 5.0),
+        EquipmentEntity("HIP_THRUST_MACHINE", "Máquina de hip thrust", "MACHINE", false, 5.0),
+        EquipmentEntity("SEATED_CALF", "Panturrilha sentada", "MACHINE", false, 5.0),
+        EquipmentEntity("ASSISTED_PULLUP", "Graviton / barra assistida", "MACHINE", false, 5.0),
+        EquipmentEntity("DIP_ASSIST", "Graviton / paralelas assistidas", "MACHINE", false, 5.0),
+        EquipmentEntity("CHEST_SUPPORTED_ROW", "Remada com peito apoiado", "MACHINE", false, 5.0),
+        EquipmentEntity("BACK_EXTENSION", "Banco 45° / extensão lombar", "BODYWEIGHT", false, null),
+        EquipmentEntity("LATERAL_RAISE_MACHINE", "Máquina de elevação lateral", "MACHINE", false, 2.5),
+        EquipmentEntity("REVERSE_PEC_DECK", "Peck deck reverso", "MACHINE", false, 2.5),
+        EquipmentEntity("EZ_BAR", "Barra W / EZ e anilhas", "FREE_WEIGHT", false, 2.5),
+        EquipmentEntity("LANDMINE", "Landmine / barra ancorada", "FREE_WEIGHT", false, 2.5),
+        EquipmentEntity("PLATE", "Anilhas livres", "FREE_WEIGHT", true, 1.0),
+        EquipmentEntity("BAND", "Faixa elástica", "BAND", false, null),
+        EquipmentEntity("KETTLEBELL", "Kettlebell", "FREE_WEIGHT", false, 2.0),
+        EquipmentEntity("TRX", "Fita de suspensão / TRX", "BODYWEIGHT", false, null)
     )
 
-    val exercises = listOf(
-        ExerciseEntity(
-            code = "LEG_PRESS_45", slug = "leg-press-45", name = "Leg press 45°", equipmentCode = "LEG_PRESS",
-            movementPattern = "KNEE_HIP_EXTENSION",
-            instructions = "Apoie toda a lombar no encosto, mantenha os pés firmes na plataforma e desça com controle até a amplitude confortável. Empurre sem travar os joelhos.",
-            commonErrors = "Retirar o quadril do banco; deixar os joelhos colapsarem para dentro; reduzir demais a amplitude; travar os joelhos no topo."
-        ),
-        ExerciseEntity(
-            code = "LEG_EXTENSION_MACHINE", slug = "cadeira-extensora", name = "Cadeira extensora", equipmentCode = "LEG_EXTENSION",
-            movementPattern = "KNEE_EXTENSION",
-            instructions = "Ajuste o eixo da máquina próximo ao joelho e o apoio sobre a canela. Estenda os joelhos de forma controlada e retorne sem deixar a carga despencar.",
-            commonErrors = "Banco mal ajustado; impulso com o tronco; bater a pilha de pesos; usar amplitude dolorosa."
-        ),
-        ExerciseEntity(
-            code = "SEATED_LEG_CURL", slug = "cadeira-flexora", name = "Cadeira flexora", equipmentCode = "LEG_CURL",
-            movementPattern = "KNEE_FLEXION",
-            instructions = "Mantenha quadril e tronco apoiados. Flexione os joelhos levando o rolo para baixo e para trás, depois retorne devagar.",
-            commonErrors = "Levantar o quadril; encurtar muito a amplitude; soltar a carga na volta."
-        ),
-        ExerciseEntity(
-            code = "LYING_LEG_CURL", slug = "mesa-flexora", name = "Mesa flexora", equipmentCode = "LEG_CURL",
-            movementPattern = "KNEE_FLEXION",
-            instructions = "Mantenha o quadril apoiado e flexione os joelhos até a amplitude confortável. Controle a extensão na volta.",
-            commonErrors = "Elevar o quadril; exagerar na carga; acelerar a fase de retorno."
-        ),
-        ExerciseEntity(
-            code = "HIP_ABDUCTOR", slug = "cadeira-abdutora", name = "Cadeira abdutora", equipmentCode = "ABDUCTOR",
-            movementPattern = "HIP_ABDUCTION",
-            instructions = "Mantenha o tronco estável e abra os joelhos contra a resistência. Retorne com controle.",
-            commonErrors = "Balançar o tronco; bater a carga; usar amplitude desconfortável."
-        ),
-        ExerciseEntity(
-            code = "HIP_ADDUCTOR", slug = "cadeira-adutora", name = "Cadeira adutora", equipmentCode = "ADDUCTOR",
-            movementPattern = "HIP_ADDUCTION",
-            instructions = "Comece em uma abertura confortável e aproxime as pernas sem impulso. Retorne de forma controlada.",
-            commonErrors = "Forçar amplitude excessiva; usar impulso; soltar a carga."
-        ),
-        ExerciseEntity(
-            code = "SMITH_SQUAT", slug = "agachamento-smith", name = "Agachamento no Smith", equipmentCode = "SMITH",
-            movementPattern = "SQUAT",
-            instructions = "Posicione a barra de forma confortável, mantenha pés estáveis e desça com joelhos acompanhando a direção dos pés. Suba mantendo o tronco controlado.",
-            commonErrors = "Posição dos pés inadequada; joelhos colapsando; perder apoio dos pés; amplitude dolorosa."
-        ),
-        ExerciseEntity(
-            code = "DB_RDL", slug = "stiff-halteres", name = "Stiff / levantamento romeno com halteres", equipmentCode = "DUMBBELLS",
-            movementPattern = "HIP_HINGE",
-            instructions = "Com joelhos levemente flexionados, leve o quadril para trás mantendo a coluna estável e os halteres próximos às pernas. Retorne contraindo glúteos.",
-            commonErrors = "Arredondar a lombar; transformar o movimento em agachamento; afastar os halteres do corpo; buscar amplitude além do controle."
-        ),
-        ExerciseEntity(
-            code = "CALF_MACHINE", slug = "panturrilha-maquina", name = "Panturrilha na máquina", equipmentCode = "CALF_MACHINE",
-            movementPattern = "PLANTAR_FLEXION",
-            instructions = "Eleve os calcanhares até uma contração confortável e desça de forma controlada, usando amplitude sem perder estabilidade.",
-            commonErrors = "Quicar; fazer repetições muito curtas; usar impulso do corpo."
-        ),
-        ExerciseEntity(
-            code = "CHEST_PRESS_MACHINE", slug = "supino-maquina", name = "Supino máquina", equipmentCode = "CHEST_PRESS",
-            movementPattern = "HORIZONTAL_PUSH",
-            instructions = "Ajuste o banco para as pegadas ficarem aproximadamente na linha do peito. Empurre mantendo escápulas apoiadas e retorne com controle.",
-            commonErrors = "Ombros projetados para frente; banco mal ajustado; travar cotovelos; perder controle na volta."
-        ),
-        ExerciseEntity(
-            code = "INCLINE_DB_PRESS", slug = "supino-inclinado-halteres", name = "Supino inclinado com halteres", equipmentCode = "DUMBBELLS",
-            movementPattern = "INCLINE_PUSH",
-            instructions = "No banco inclinado, mantenha pés firmes e escápulas estáveis. Desça os halteres com controle e empurre sem bater um no outro.",
-            commonErrors = "Inclinação excessiva do banco; ombros soltos; amplitude desconfortável; arqueamento exagerado."
-        ),
-        ExerciseEntity(
-            code = "PECK_DECK", slug = "peck-deck", name = "Peck deck / voador", equipmentCode = "PECK_DECK",
-            movementPattern = "HORIZONTAL_ADDUCTION",
-            instructions = "Ajuste o banco para os braços ficarem confortáveis. Aproxime as alças sem tirar as costas do apoio e retorne lentamente.",
-            commonErrors = "Alongar além do conforto do ombro; usar impulso; perder contato com o encosto."
-        ),
-        ExerciseEntity(
-            code = "LAT_PULLDOWN", slug = "puxada-frontal", name = "Puxada frontal", equipmentCode = "LAT_PULLDOWN",
-            movementPattern = "VERTICAL_PULL",
-            instructions = "Segure a barra com pegada confortável, mantenha o tronco estável e puxe em direção à parte alta do peito. Controle a subida.",
-            commonErrors = "Puxar atrás da nuca; balançar o tronco; usar impulso; elevar exageradamente os ombros."
-        ),
-        ExerciseEntity(
-            code = "SEATED_ROW", slug = "remada-sentada", name = "Remada sentada", equipmentCode = "SEATED_ROW",
-            movementPattern = "HORIZONTAL_PULL",
-            instructions = "Mantenha o tronco estável e puxe a alça em direção ao abdômen, aproximando as escápulas sem exagero. Retorne controlando.",
-            commonErrors = "Balançar o tronco; arredondar a lombar; puxar apenas com os braços; soltar a carga na volta."
-        ),
-        ExerciseEntity(
-            code = "SHOULDER_PRESS_MACHINE", slug = "desenvolvimento-maquina", name = "Desenvolvimento máquina", equipmentCode = "SHOULDER_PRESS",
-            movementPattern = "VERTICAL_PUSH",
-            instructions = "Ajuste o banco para as pegadas começarem em posição confortável. Empurre acima da cabeça sem perder contato do tronco com o encosto.",
-            commonErrors = "Banco baixo demais; hiperextensão lombar; amplitude dolorosa; travar cotovelos com força."
-        ),
-        ExerciseEntity(
-            code = "DB_LATERAL_RAISE", slug = "elevacao-lateral", name = "Elevação lateral com halteres", equipmentCode = "DUMBBELLS",
-            movementPattern = "SHOULDER_ABDUCTION",
-            instructions = "Com cotovelos levemente flexionados, eleve os braços lateralmente até a amplitude confortável. Desça devagar.",
-            commonErrors = "Impulso do tronco; elevar muito acima do necessário; carga excessiva; encolher os ombros."
-        ),
-        ExerciseEntity(
-            code = "CABLE_TRICEPS_PRESSDOWN", slug = "triceps-pulley", name = "Tríceps no pulley", equipmentCode = "CABLE",
-            movementPattern = "ELBOW_EXTENSION",
-            instructions = "Mantenha os cotovelos próximos ao tronco e estenda os braços contra a polia. Retorne sem deixar os cotovelos avançarem demais.",
-            commonErrors = "Balançar o corpo; abrir os cotovelos; usar carga que obriga a inclinar excessivamente o tronco."
-        ),
-        ExerciseEntity(
-            code = "SCOTT_CURL", slug = "rosca-scott", name = "Rosca Scott", equipmentCode = "SCOTT",
-            movementPattern = "ELBOW_FLEXION",
-            instructions = "Apoie completamente os braços no banco e flexione os cotovelos sem retirar o braço do apoio. Desça de forma controlada.",
-            commonErrors = "Tirar os cotovelos do apoio; usar impulso; relaxar completamente no fim da descida."
-        ),
-        ExerciseEntity(
-            code = "DB_BICEPS_CURL", slug = "rosca-halteres", name = "Rosca com halteres", equipmentCode = "DUMBBELLS",
-            movementPattern = "ELBOW_FLEXION",
-            instructions = "Mantenha o tronco estável e flexione os cotovelos sem projetá-los para frente. Retorne controlando a carga.",
-            commonErrors = "Balançar o tronco; elevar os ombros; avançar os cotovelos; usar impulso."
-        ),
-        ExerciseEntity(
-            code = "CABLE_CRUNCH", slug = "abdominal-polia", name = "Abdominal na polia", equipmentCode = "CABLE",
-            movementPattern = "TRUNK_FLEXION",
-            instructions = "Mantenha quadril relativamente estável e flexione o tronco aproximando costelas e pelve. Retorne de forma controlada.",
-            commonErrors = "Puxar apenas com os braços; transformar o movimento em flexão de quadril; usar impulso."
-        )
+    private val coreExercises = listOf(
+        ex("LEG_PRESS_45", "leg-press-45", "Leg press 45°", "LEG_PRESS", "KNEE_HIP_EXTENSION",
+            "Apoie a lombar, mantenha os pés firmes e desça até a amplitude confortável. Empurre sem travar os joelhos.",
+            "Retirar o quadril do banco; joelhos colapsando; amplitude curta demais; travar os joelhos."),
+        ex("LEG_EXTENSION_MACHINE", "cadeira-extensora", "Cadeira extensora", "LEG_EXTENSION", "KNEE_EXTENSION",
+            "Ajuste o eixo da máquina próximo ao joelho e estenda com controle, retornando sem deixar a carga despencar.",
+            "Banco mal ajustado; impulso; bater a pilha; usar amplitude dolorosa."),
+        ex("SEATED_LEG_CURL", "cadeira-flexora", "Cadeira flexora", "LEG_CURL", "KNEE_FLEXION",
+            "Mantenha quadril e tronco apoiados. Flexione os joelhos e controle a volta.",
+            "Levantar o quadril; encurtar demais a amplitude; soltar a carga."),
+        ex("LYING_LEG_CURL", "mesa-flexora", "Mesa flexora", "LEG_CURL", "KNEE_FLEXION",
+            "Mantenha o quadril apoiado, flexione os joelhos e controle a extensão na volta.",
+            "Elevar o quadril; carga excessiva; acelerar o retorno."),
+        ex("HIP_ABDUCTOR", "cadeira-abdutora", "Cadeira abdutora", "ABDUCTOR", "HIP_ABDUCTION",
+            "Mantenha o tronco estável, abra os joelhos contra a resistência e retorne com controle.",
+            "Balançar o tronco; bater a carga; usar amplitude desconfortável."),
+        ex("HIP_ADDUCTOR", "cadeira-adutora", "Cadeira adutora", "ADDUCTOR", "HIP_ADDUCTION",
+            "Comece em abertura confortável, aproxime as pernas sem impulso e retorne de forma controlada.",
+            "Forçar amplitude excessiva; usar impulso; soltar a carga."),
+        ex("SMITH_SQUAT", "agachamento-smith", "Agachamento no Smith", "SMITH", "SQUAT",
+            "Posicione a barra de forma confortável, mantenha os pés estáveis e desça com os joelhos acompanhando os pés.",
+            "Posição dos pés inadequada; joelhos colapsando; perder apoio dos pés; amplitude dolorosa."),
+        ex("BARBELL_BACK_SQUAT", "agachamento-livre-barra", "Agachamento livre com barra", "BARBELL", "SQUAT",
+            "Mantenha a barra estável, pés firmes e tronco controlado; desça até a amplitude que consegue sustentar sem perder posição.",
+            "Perder pressão dos pés; joelhos colapsando; arredondar a coluna; usar carga além do controle."),
+        ex("GOBLET_SQUAT", "agachamento-goblet", "Agachamento goblet com halter", "DUMBBELLS", "SQUAT",
+            "Segure o halter junto ao peito, mantenha os pés firmes e agache com o tronco controlado.",
+            "Deixar o peso afastar do corpo; perder equilíbrio; joelhos colapsando."),
+        ex("BODYWEIGHT_SQUAT", "agachamento-peso-corporal", "Agachamento com peso corporal", "BODYWEIGHT", "SQUAT",
+            "Agache mantendo os pés apoiados e os joelhos acompanhando a direção dos pés.",
+            "Levantar calcanhares; perder equilíbrio; colapsar os joelhos."),
+        ex("BULGARIAN_SPLIT_SQUAT", "agachamento-bulgaro", "Agachamento búlgaro com halteres", "DUMBBELLS", "LUNGE",
+            "Apoie o pé traseiro, mantenha o pé da frente estável e desça controlando quadril e joelho.",
+            "Passo curto demais; perder equilíbrio; joelho colapsando; usar carga excessiva."),
+        ex("DB_REVERSE_LUNGE", "afundo-reverso-halteres", "Afundo reverso com halteres", "DUMBBELLS", "LUNGE",
+            "Dê um passo para trás, desça com controle e retorne pressionando o chão com a perna da frente.",
+            "Passo estreito; perder equilíbrio; impulso excessivo; joelho colapsando."),
+        ex("DB_STEP_UP", "subida-banco-halteres", "Step-up com halteres", "DUMBBELLS", "LUNGE",
+            "Suba no banco usando principalmente a perna apoiada e controle a descida.",
+            "Impulsionar demais com a perna de baixo; banco alto demais; perder alinhamento do joelho."),
+        ex("DB_RDL", "stiff-halteres", "Stiff / levantamento romeno com halteres", "DUMBBELLS", "HIP_HINGE",
+            "Leve o quadril para trás com joelhos levemente flexionados, coluna estável e halteres próximos às pernas.",
+            "Arredondar a lombar; transformar em agachamento; afastar os halteres; buscar amplitude além do controle."),
+        ex("BARBELL_RDL", "stiff-barra", "Levantamento romeno com barra", "BARBELL", "HIP_HINGE",
+            "Mantenha a barra próxima às pernas, leve o quadril para trás e retorne contraindo glúteos.",
+            "Arredondar a lombar; barra longe do corpo; flexionar demais os joelhos; amplitude forçada."),
+        ex("BARBELL_HIP_THRUST", "hip-thrust-barra", "Hip thrust com barra", "BARBELL", "HIP_EXTENSION",
+            "Apoie a parte alta das costas, mantenha os pés firmes e estenda o quadril até posição neutra.",
+            "Hiperestender a lombar; pés mal posicionados; perder controle na descida."),
+        ex("BODYWEIGHT_GLUTE_BRIDGE", "ponte-gluteos", "Ponte de glúteos", "BODYWEIGHT", "HIP_EXTENSION",
+            "Com os pés apoiados, eleve o quadril contraindo glúteos e desça com controle.",
+            "Hiperestender a lombar; empurrar apenas com a ponta dos pés; perder controle."),
+        ex("CALF_MACHINE", "panturrilha-maquina", "Panturrilha na máquina", "CALF_MACHINE", "PLANTAR_FLEXION",
+            "Eleve os calcanhares, pause brevemente e desça com controle usando amplitude confortável.",
+            "Quicar; repetições muito curtas; usar impulso."),
+        ex("DB_CALF_RAISE", "panturrilha-halteres", "Panturrilha em pé com halteres", "DUMBBELLS", "PLANTAR_FLEXION",
+            "Eleve os calcanhares mantendo equilíbrio e controle a descida.",
+            "Quicar; perder equilíbrio; amplitude muito curta."),
+        ex("BODYWEIGHT_CALF_RAISE", "panturrilha-peso-corporal", "Panturrilha em pé com peso corporal", "BODYWEIGHT", "PLANTAR_FLEXION",
+            "Eleve os calcanhares com controle e desça até sentir alongamento confortável.",
+            "Quicar; usar impulso; perder alinhamento dos pés."),
+        ex("CHEST_PRESS_MACHINE", "supino-maquina", "Supino máquina", "CHEST_PRESS", "HORIZONTAL_PUSH",
+            "Ajuste o banco para as pegadas ficarem na linha do peito, empurre mantendo escápulas apoiadas e retorne com controle.",
+            "Ombros projetados; banco mal ajustado; travar cotovelos; perder controle na volta."),
+        ex("DB_FLAT_PRESS", "supino-reto-halteres", "Supino reto com halteres", "DUMBBELLS", "HORIZONTAL_PUSH",
+            "Mantenha pés firmes e escápulas estáveis; desça os halteres com controle e empurre sem bater um no outro.",
+            "Ombros soltos; amplitude desconfortável; arqueamento excessivo; perder controle."),
+        ex("BARBELL_BENCH_PRESS", "supino-reto-barra", "Supino reto com barra", "BARBELL", "HORIZONTAL_PUSH",
+            "Mantenha pés firmes e escápulas estáveis; desça a barra de forma controlada e empurre mantendo trajetória consistente.",
+            "Ombros soltos; quicar a barra; pegada instável; usar carga sem controle."),
+        ex("PUSH_UP", "flexao-bracos", "Flexão de braços", "BODYWEIGHT", "HORIZONTAL_PUSH",
+            "Mantenha corpo alinhado, desça o peito com controle e empurre o chão sem perder a posição do tronco.",
+            "Quadril cair; cotovelos excessivamente abertos; amplitude muito curta."),
+        ex("KNEE_PUSH_UP", "flexao-joelhos", "Flexão de braços com joelhos apoiados", "BODYWEIGHT", "HORIZONTAL_PUSH",
+            "Mantenha tronco e quadril alinhados dos joelhos aos ombros, desça com controle e empurre o chão.",
+            "Dobrar o quadril; cotovelos muito abertos; amplitude curta."),
+        ex("INCLINE_DB_PRESS", "supino-inclinado-halteres", "Supino inclinado com halteres", "DUMBBELLS", "INCLINE_PUSH",
+            "No banco inclinado, mantenha pés firmes e escápulas estáveis. Desça os halteres com controle e empurre.",
+            "Inclinação excessiva; ombros soltos; amplitude desconfortável; arqueamento exagerado."),
+        ex("PECK_DECK", "peck-deck", "Peck deck / voador", "PECK_DECK", "HORIZONTAL_ADDUCTION",
+            "Ajuste o banco e aproxime as alças sem tirar as costas do apoio; retorne lentamente.",
+            "Alongar além do conforto; usar impulso; perder contato com o encosto."),
+        ex("LAT_PULLDOWN", "puxada-frontal", "Puxada frontal", "LAT_PULLDOWN", "VERTICAL_PULL",
+            "Mantenha o tronco estável e puxe a barra em direção à parte alta do peito; controle a subida.",
+            "Puxar atrás da nuca; balançar o tronco; usar impulso; elevar exageradamente os ombros."),
+        ex("PULL_UP", "barra-fixa", "Barra fixa", "PULLUP_BAR", "VERTICAL_PULL",
+            "Inicie com ombros controlados, puxe o corpo até uma amplitude confortável e desça sem despencar.",
+            "Balançar o corpo; encurtar demais a amplitude; perder controle na descida."),
+        ex("SEATED_ROW", "remada-sentada", "Remada sentada", "SEATED_ROW", "HORIZONTAL_PULL",
+            "Mantenha o tronco estável e puxe a alça em direção ao abdômen; retorne controlando.",
+            "Balançar o tronco; arredondar a lombar; puxar apenas com os braços; soltar a carga."),
+        ex("ONE_ARM_DB_ROW", "remada-unilateral-halter", "Remada unilateral com halter", "DUMBBELLS", "HORIZONTAL_PULL",
+            "Apoie-se de forma estável, puxe o halter em direção ao quadril e controle a descida.",
+            "Girar excessivamente o tronco; encolher o ombro; usar impulso."),
+        ex("BARBELL_ROW", "remada-curvada-barra", "Remada curvada com barra", "BARBELL", "HORIZONTAL_PULL",
+            "Incline o tronco mantendo a coluna estável, puxe a barra em direção ao abdômen e controle a descida.",
+            "Arredondar a lombar; usar impulso; levantar o tronco a cada repetição."),
+        ex("INVERTED_ROW", "remada-invertida", "Remada invertida com peso corporal", "BODYWEIGHT", "HORIZONTAL_PULL",
+            "Mantenha o corpo alinhado, puxe o peito em direção ao apoio e desça controlando.",
+            "Quadril cair; ombros elevados; amplitude muito curta."),
+        ex("SHOULDER_PRESS_MACHINE", "desenvolvimento-maquina", "Desenvolvimento máquina", "SHOULDER_PRESS", "VERTICAL_PUSH",
+            "Ajuste o banco e empurre acima da cabeça sem perder contato do tronco com o encosto.",
+            "Banco baixo; hiperextensão lombar; amplitude dolorosa; travar cotovelos com força."),
+        ex("DB_SHOULDER_PRESS", "desenvolvimento-halteres", "Desenvolvimento com halteres", "DUMBBELLS", "VERTICAL_PUSH",
+            "Mantenha tronco estável e empurre os halteres acima da cabeça em amplitude confortável.",
+            "Hiperestender a lombar; bater os halteres; perder controle na descida."),
+        ex("BARBELL_OHP", "desenvolvimento-barra", "Desenvolvimento militar com barra", "BARBELL", "VERTICAL_PUSH",
+            "Mantenha glúteos e abdômen firmes e empurre a barra acima da cabeça sem exagerar a extensão lombar.",
+            "Inclinar demais o tronco; trajetória instável; usar carga excessiva."),
+        ex("DB_LATERAL_RAISE", "elevacao-lateral", "Elevação lateral com halteres", "DUMBBELLS", "SHOULDER_ABDUCTION",
+            "Com cotovelos levemente flexionados, eleve os braços lateralmente até amplitude confortável e desça devagar.",
+            "Impulso do tronco; carga excessiva; encolher os ombros."),
+        ex("FACE_PULL", "face-pull", "Face pull na polia", "CABLE", "SHOULDER_HORIZONTAL_ABDUCTION",
+            "Puxe a corda em direção ao rosto mantendo cotovelos abertos e escápulas controladas.",
+            "Carga excessiva; hiperextender a lombar; puxar apenas com as mãos."),
+        ex("DB_REVERSE_FLY", "crucifixo-inverso-halteres", "Crucifixo inverso com halteres", "DUMBBELLS", "SHOULDER_HORIZONTAL_ABDUCTION",
+            "Incline o tronco de forma estável e abra os braços sem usar balanço.",
+            "Usar impulso; encolher os ombros; carga excessiva."),
+        ex("CABLE_TRICEPS_PRESSDOWN", "triceps-pulley", "Tríceps no pulley", "CABLE", "ELBOW_EXTENSION",
+            "Mantenha os cotovelos próximos ao tronco e estenda os braços contra a polia.",
+            "Balançar o corpo; abrir os cotovelos; inclinar demais o tronco."),
+        ex("DB_OVERHEAD_TRICEPS", "triceps-frances-halter", "Tríceps francês com halter", "DUMBBELLS", "ELBOW_EXTENSION",
+            "Mantenha os cotovelos apontados para frente e estenda os braços sem compensar com a lombar.",
+            "Abrir muito os cotovelos; hiperestender a lombar; amplitude dolorosa."),
+        ex("CLOSE_GRIP_PUSH_UP", "flexao-fechada", "Flexão fechada para tríceps", "BODYWEIGHT", "ELBOW_EXTENSION",
+            "Mantenha as mãos mais próximas, corpo alinhado e cotovelos relativamente junto ao tronco.",
+            "Quadril cair; cotovelos abrirem demais; amplitude muito curta."),
+        ex("SCOTT_CURL", "rosca-scott", "Rosca Scott", "SCOTT", "ELBOW_FLEXION",
+            "Apoie completamente os braços no banco e flexione os cotovelos sem retirar o braço do apoio.",
+            "Tirar os cotovelos do apoio; usar impulso; relaxar abruptamente na descida."),
+        ex("DB_BICEPS_CURL", "rosca-halteres", "Rosca com halteres", "DUMBBELLS", "ELBOW_FLEXION",
+            "Mantenha o tronco estável e flexione os cotovelos sem projetá-los para frente.",
+            "Balançar o tronco; elevar os ombros; avançar os cotovelos."),
+        ex("HAMMER_CURL", "rosca-martelo", "Rosca martelo com halteres", "DUMBBELLS", "ELBOW_FLEXION",
+            "Mantenha pegada neutra e tronco estável enquanto flexiona os cotovelos.",
+            "Balançar o tronco; mover os cotovelos para frente; carga excessiva."),
+        ex("BARBELL_CURL", "rosca-direta-barra", "Rosca direta com barra", "BARBELL", "ELBOW_FLEXION",
+            "Mantenha o tronco firme e flexione os cotovelos sem usar balanço.",
+            "Impulso do quadril; cotovelos avançando; ombros elevados."),
+        ex("CABLE_CRUNCH", "abdominal-polia", "Abdominal na polia", "CABLE", "TRUNK_FLEXION",
+            "Mantenha quadril relativamente estável e flexione o tronco aproximando costelas e pelve.",
+            "Puxar apenas com os braços; transformar em flexão de quadril; usar impulso."),
+        ex("REVERSE_CRUNCH", "abdominal-reverso", "Abdominal reverso", "BODYWEIGHT", "TRUNK_FLEXION",
+            "Leve a pelve em direção às costelas com controle e retorne sem embalo.",
+            "Usar balanço das pernas; arquear excessivamente a lombar; acelerar a volta."),
+        ex("PLANK", "prancha", "Prancha", "BODYWEIGHT", "CORE_STABILITY",
+            "Mantenha cabeça, tronco e quadril alinhados enquanto sustenta a posição respirando normalmente.",
+            "Quadril cair ou subir demais; prender a respiração; perder posição lombar."),
+        ex("DEAD_BUG", "dead-bug", "Dead bug", "BODYWEIGHT", "CORE_STABILITY",
+            "Mantenha a lombar controlada enquanto alterna braços e pernas lentamente.",
+            "Perder contato lombar; mover rápido demais; reduzir o controle do tronco.")
     )
 
-    val exerciseMuscles = listOf(
+    private val coreExerciseMuscles = listOf(
         m("LEG_PRESS_45", "QUADS", 1.0, "PRIMARY"), m("LEG_PRESS_45", "GLUTES", 0.5, "SECONDARY"),
         m("LEG_EXTENSION_MACHINE", "QUADS", 1.0, "PRIMARY"),
         m("SEATED_LEG_CURL", "HAMSTRINGS", 1.0, "PRIMARY"),
         m("LYING_LEG_CURL", "HAMSTRINGS", 1.0, "PRIMARY"),
         m("HIP_ABDUCTOR", "GLUTES", 1.0, "PRIMARY"),
-        m("HIP_ADDUCTOR", "GLUTES", 0.5, "SECONDARY"),
+        m("HIP_ADDUCTOR", "ADDUCTORS", 1.0, "PRIMARY"),
         m("SMITH_SQUAT", "QUADS", 1.0, "PRIMARY"), m("SMITH_SQUAT", "GLUTES", 0.75, "SECONDARY"),
+        m("BARBELL_BACK_SQUAT", "QUADS", 1.0, "PRIMARY"), m("BARBELL_BACK_SQUAT", "GLUTES", 0.75, "SECONDARY"),
+        m("GOBLET_SQUAT", "QUADS", 1.0, "PRIMARY"), m("GOBLET_SQUAT", "GLUTES", 0.75, "SECONDARY"),
+        m("BODYWEIGHT_SQUAT", "QUADS", 0.75, "PRIMARY"), m("BODYWEIGHT_SQUAT", "GLUTES", 0.5, "SECONDARY"),
+        m("BULGARIAN_SPLIT_SQUAT", "QUADS", 1.0, "PRIMARY"), m("BULGARIAN_SPLIT_SQUAT", "GLUTES", 0.75, "SECONDARY"),
+        m("DB_REVERSE_LUNGE", "QUADS", 1.0, "PRIMARY"), m("DB_REVERSE_LUNGE", "GLUTES", 0.75, "SECONDARY"),
+        m("DB_STEP_UP", "QUADS", 1.0, "PRIMARY"), m("DB_STEP_UP", "GLUTES", 0.75, "SECONDARY"),
         m("DB_RDL", "HAMSTRINGS", 1.0, "PRIMARY"), m("DB_RDL", "GLUTES", 0.75, "SECONDARY"),
+        m("BARBELL_RDL", "HAMSTRINGS", 1.0, "PRIMARY"), m("BARBELL_RDL", "GLUTES", 0.75, "SECONDARY"),
+        m("BARBELL_HIP_THRUST", "GLUTES", 1.0, "PRIMARY"), m("BARBELL_HIP_THRUST", "HAMSTRINGS", 0.25, "SECONDARY"),
+        m("BODYWEIGHT_GLUTE_BRIDGE", "GLUTES", 1.0, "PRIMARY"),
         m("CALF_MACHINE", "CALVES", 1.0, "PRIMARY"),
+        m("DB_CALF_RAISE", "CALVES", 1.0, "PRIMARY"),
+        m("BODYWEIGHT_CALF_RAISE", "CALVES", 1.0, "PRIMARY"),
         m("CHEST_PRESS_MACHINE", "CHEST", 1.0, "PRIMARY"), m("CHEST_PRESS_MACHINE", "TRICEPS", 0.5, "SECONDARY"), m("CHEST_PRESS_MACHINE", "FRONT_DELTS", 0.5, "SECONDARY"),
-        m("INCLINE_DB_PRESS", "CHEST", 1.0, "PRIMARY"), m("INCLINE_DB_PRESS", "TRICEPS", 0.5, "SECONDARY"), m("INCLINE_DB_PRESS", "FRONT_DELTS", 0.5, "SECONDARY"),
+        m("DB_FLAT_PRESS", "CHEST", 1.0, "PRIMARY"), m("DB_FLAT_PRESS", "TRICEPS", 0.5, "SECONDARY"), m("DB_FLAT_PRESS", "FRONT_DELTS", 0.5, "SECONDARY"),
+        m("BARBELL_BENCH_PRESS", "CHEST", 1.0, "PRIMARY"), m("BARBELL_BENCH_PRESS", "TRICEPS", 0.5, "SECONDARY"), m("BARBELL_BENCH_PRESS", "FRONT_DELTS", 0.5, "SECONDARY"),
+        m("PUSH_UP", "CHEST", 1.0, "PRIMARY"), m("PUSH_UP", "TRICEPS", 0.5, "SECONDARY"), m("PUSH_UP", "FRONT_DELTS", 0.5, "SECONDARY"),
+        m("KNEE_PUSH_UP", "CHEST", 0.8, "PRIMARY"), m("KNEE_PUSH_UP", "TRICEPS", 0.5, "SECONDARY"), m("KNEE_PUSH_UP", "FRONT_DELTS", 0.4, "SECONDARY"),
+        m("INCLINE_DB_PRESS", "CHEST", 1.0, "PRIMARY"), m("INCLINE_DB_PRESS", "TRICEPS", 0.5, "SECONDARY"), m("INCLINE_DB_PRESS", "FRONT_DELTS", 0.75, "SECONDARY"),
         m("PECK_DECK", "CHEST", 1.0, "PRIMARY"),
         m("LAT_PULLDOWN", "LATS", 1.0, "PRIMARY"), m("LAT_PULLDOWN", "BICEPS", 0.5, "SECONDARY"),
-        m("SEATED_ROW", "UPPER_BACK", 1.0, "PRIMARY"), m("SEATED_ROW", "LATS", 0.5, "SECONDARY"), m("SEATED_ROW", "BICEPS", 0.5, "SECONDARY"),
-        m("SHOULDER_PRESS_MACHINE", "FRONT_DELTS", 1.0, "PRIMARY"), m("SHOULDER_PRESS_MACHINE", "TRICEPS", 0.5, "SECONDARY"),
+        m("PULL_UP", "LATS", 1.0, "PRIMARY"), m("PULL_UP", "UPPER_BACK", 0.5, "SECONDARY"), m("PULL_UP", "BICEPS", 0.5, "SECONDARY"),
+        m("SEATED_ROW", "UPPER_BACK", 1.0, "PRIMARY"), m("SEATED_ROW", "LATS", 0.5, "SECONDARY"), m("SEATED_ROW", "BICEPS", 0.5, "SECONDARY"), m("SEATED_ROW", "REAR_DELTS", 0.25, "SECONDARY"),
+        m("ONE_ARM_DB_ROW", "UPPER_BACK", 1.0, "PRIMARY"), m("ONE_ARM_DB_ROW", "LATS", 0.5, "SECONDARY"), m("ONE_ARM_DB_ROW", "BICEPS", 0.5, "SECONDARY"),
+        m("BARBELL_ROW", "UPPER_BACK", 1.0, "PRIMARY"), m("BARBELL_ROW", "LATS", 0.5, "SECONDARY"), m("BARBELL_ROW", "BICEPS", 0.5, "SECONDARY"), m("BARBELL_ROW", "REAR_DELTS", 0.25, "SECONDARY"),
+        m("INVERTED_ROW", "UPPER_BACK", 1.0, "PRIMARY"), m("INVERTED_ROW", "LATS", 0.5, "SECONDARY"), m("INVERTED_ROW", "BICEPS", 0.5, "SECONDARY"), m("INVERTED_ROW", "REAR_DELTS", 0.25, "SECONDARY"),
+        m("SHOULDER_PRESS_MACHINE", "FRONT_DELTS", 1.0, "PRIMARY"), m("SHOULDER_PRESS_MACHINE", "TRICEPS", 0.5, "SECONDARY"), m("SHOULDER_PRESS_MACHINE", "SIDE_DELTS", 0.25, "SECONDARY"),
+        m("DB_SHOULDER_PRESS", "FRONT_DELTS", 1.0, "PRIMARY"), m("DB_SHOULDER_PRESS", "TRICEPS", 0.5, "SECONDARY"), m("DB_SHOULDER_PRESS", "SIDE_DELTS", 0.25, "SECONDARY"),
+        m("BARBELL_OHP", "FRONT_DELTS", 1.0, "PRIMARY"), m("BARBELL_OHP", "TRICEPS", 0.5, "SECONDARY"), m("BARBELL_OHP", "SIDE_DELTS", 0.25, "SECONDARY"),
         m("DB_LATERAL_RAISE", "SIDE_DELTS", 1.0, "PRIMARY"),
+        m("FACE_PULL", "REAR_DELTS", 1.0, "PRIMARY"), m("FACE_PULL", "UPPER_BACK", 0.5, "SECONDARY"), m("FACE_PULL", "SIDE_DELTS", 0.25, "SECONDARY"),
+        m("DB_REVERSE_FLY", "REAR_DELTS", 1.0, "PRIMARY"), m("DB_REVERSE_FLY", "UPPER_BACK", 0.5, "SECONDARY"),
         m("CABLE_TRICEPS_PRESSDOWN", "TRICEPS", 1.0, "PRIMARY"),
+        m("DB_OVERHEAD_TRICEPS", "TRICEPS", 1.0, "PRIMARY"),
+        m("CLOSE_GRIP_PUSH_UP", "TRICEPS", 1.0, "PRIMARY"), m("CLOSE_GRIP_PUSH_UP", "CHEST", 0.5, "SECONDARY"), m("CLOSE_GRIP_PUSH_UP", "FRONT_DELTS", 0.25, "SECONDARY"),
         m("SCOTT_CURL", "BICEPS", 1.0, "PRIMARY"),
         m("DB_BICEPS_CURL", "BICEPS", 1.0, "PRIMARY"),
-        m("CABLE_CRUNCH", "CORE", 1.0, "PRIMARY")
+        m("HAMMER_CURL", "BICEPS", 1.0, "PRIMARY"),
+        m("BARBELL_CURL", "BICEPS", 1.0, "PRIMARY"),
+        m("CABLE_CRUNCH", "CORE", 1.0, "PRIMARY"),
+        m("REVERSE_CRUNCH", "CORE", 1.0, "PRIMARY"),
+        m("PLANK", "CORE", 1.0, "PRIMARY"),
+        m("DEAD_BUG", "CORE", 1.0, "PRIMARY")
     )
+
+    val exercises = coreExercises + ExtendedExerciseCatalog.exercises
+    val exerciseMuscles = coreExerciseMuscles + ExtendedExerciseCatalog.exerciseMuscles
+    val timedExerciseCodes = buildSet {
+        add("PLANK")
+        addAll(ExtendedExerciseCatalog.timedExerciseCodes)
+    }
+
+    private fun ex(code: String, slug: String, name: String, equipment: String, pattern: String, instructions: String, errors: String) =
+        ExerciseEntity(code = code, slug = slug, name = name, equipmentCode = equipment, movementPattern = pattern, instructions = instructions, commonErrors = errors)
 
     private fun m(exercise: String, muscle: String, contribution: Double, role: String) =
         ExerciseMuscleEntity(exercise, muscle, contribution, role)

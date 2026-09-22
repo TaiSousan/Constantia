@@ -29,7 +29,7 @@ enum class MainDestination(val route: String, val label: String, val icon: Image
     Today("today", "Hoje", Icons.Default.Today),
     Training("training", "Treino", Icons.Default.FitnessCenter),
     Focus("focus", "Foco", Icons.Default.Timer),
-    Nutrition("nutrition", "Alimentação", Icons.Default.Restaurant),
+    Nutrition("nutrition", "Nutrição", Icons.Default.Restaurant),
     Progress("progress", "Progresso", Icons.Default.ShowChart)
 }
 
