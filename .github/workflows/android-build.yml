@@ -29,11 +29,15 @@ jobs:
         with:
           packages: ''
 
-      - name: Install Android 17 preview SDK
+      - name: Install Android 17 SDK
         shell: bash
         run: |
-          sdkmanager --list --channel=3 | grep -E "platforms;android-37|build-tools;36\.0\.0|build-tools;37" || true
-          sdkmanager --channel=3 "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          sdkmanager --channel=3 "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+          if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+          fi
+          ls -la "$ANDROID_HOME/platforms"
+          ls -la "$ANDROID_HOME/build-tools"
 
       - name: Set up Gradle 9.6.0
         uses: gradle/actions/setup-gradle@v6
