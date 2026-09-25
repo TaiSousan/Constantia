@@ -532,7 +532,7 @@ class TrainingRepository(
                 .thenByDescending { it.recentEffectiveSets }
         )
 
-        val planMinutes = Regex("janela de até (\d+) min")
+        val planMinutes = Regex("janela de até (\\d+) min")
             .find(plan.rationale)
             ?.groupValues
             ?.getOrNull(1)
