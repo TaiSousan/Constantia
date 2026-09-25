@@ -37,7 +37,11 @@ data class TrainingPlanSpec(
  */
 class TrainingPrescriptionEngine {
     fun generate(user: UserProfileEntity, training: TrainingProfileEntity, hasRestrictions: Boolean): TrainingPlanSpec {
-        val days = training.availableDaysPerWeek.coerceIn(2, 5)
+        // Disponibilidade é uma janela possível; frequência é a quantidade
+        // desejada de sessões de força.
+        val days = training.currentTrainingDaysPerWeek
+            .coerceIn(2, 5)
+            .coerceAtMost(training.availableDaysPerWeek.coerceIn(2, 7))
         val experience = runCatching { ExperienceLevel.valueOf(training.experienceLevel) }
             .getOrDefault(ExperienceLevel.INTERMEDIATE)
         val compoundSets = when (experience) {
@@ -45,7 +49,7 @@ class TrainingPrescriptionEngine {
             ExperienceLevel.INTERMEDIATE, ExperienceLevel.ADVANCED -> 3
         }
         val accessorySets = 2
-        val timeCap = training.normalSessionMinutes.coerceIn(30, 120)
+        val timeCap = training.normalSessionMinutes.coerceIn(30, 180)
         val workouts = when (days) {
             2 -> twoDay(compoundSets, accessorySets, timeCap)
             3 -> threeDay(compoundSets, accessorySets, timeCap)

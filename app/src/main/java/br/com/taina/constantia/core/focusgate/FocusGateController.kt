@@ -9,6 +9,8 @@ import androidx.core.content.ContextCompat
 import br.com.taina.constantia.core.repository.ContextualRepository
 import br.com.taina.constantia.engine.FocusGateNetworkPlanEngine
 import br.com.taina.constantia.engine.FocusGateNetworkRule
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -19,6 +21,7 @@ class FocusGateController(
     private val planEngine: FocusGateNetworkPlanEngine = FocusGateNetworkPlanEngine()
 ) {
     val status = FocusGateRuntime.status
+    private val reconcileMutex = Mutex()
 
     fun prepareIntent(): Intent? = VpnService.prepare(context)
 
@@ -33,63 +36,72 @@ class FocusGateController(
     }
 
     suspend fun reconcile() {
-        repository.seedDefaults()
-        val statuses = repository.gateStatuses()
-        val plan = planEngine.build(statuses.map { status ->
-            FocusGateNetworkRule(
-                appLabel = status.rule.appLabel,
-                packageName = status.rule.packageName,
-                active = status.rule.active,
-                unlocked = status.decision.unlocked,
-                installed = isInstalled(status.rule.packageName)
-            )
-        })
-
-        if (plan.anyRuleActive) scheduleNextRecheck() else recheckScheduler.cancel()
-
-        if (plan.blockedPackages.isEmpty()) {
-            stopService()
-            FocusGateRuntime.publish(
-                FocusGateVpnStatus(
-                    phase = if (plan.anyRuleActive) FocusGateVpnPhase.READY else FocusGateVpnPhase.OFF,
-                    missingPackages = plan.missingLabels,
-                    message = when {
-                        plan.missingLabels.isNotEmpty() -> "Há regras bloqueadas, mas os aplicativos configurados não estão instalados neste aparelho."
-                        plan.anyRuleActive -> "Condições cumpridas. Nenhum aplicativo precisa ser bloqueado agora."
-                        else -> "Nenhuma regra do Portão de Foco está ativa."
-                    }
+        reconcileMutex.withLock {
+            repository.seedDefaults()
+            val statuses = repository.gateStatuses()
+            val plan = planEngine.build(statuses.map { status ->
+                FocusGateNetworkRule(
+                    appLabel = status.rule.appLabel,
+                    packageName = status.rule.packageName,
+                    active = status.rule.active,
+                    unlocked = status.decision.unlocked,
+                    installed = isInstalled(status.rule.packageName)
                 )
-            )
-            return
-        }
+            })
 
-        if (!hasVpnPermission()) {
-            stopService()
-            val conflict = otherVpnIsActive()
-            FocusGateRuntime.publish(
-                FocusGateVpnStatus(
-                    phase = if (conflict) FocusGateVpnPhase.VPN_CONFLICT else FocusGateVpnPhase.PERMISSION_REQUIRED,
-                    blockedLabels = plan.blockedLabels,
-                    blockedPackages = plan.blockedPackages,
-                    missingPackages = plan.missingLabels,
-                    otherVpnActive = conflict,
-                    message = if (conflict) {
-                        "Outra VPN está ativa. Autorizar o Constantia como VPN pode substituir a VPN atual do Android."
-                    } else {
-                        "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
-                    }
+            if (plan.anyRuleActive) scheduleNextRecheck() else recheckScheduler.cancel()
+
+            if (plan.blockedPackages.isEmpty()) {
+                stopService()
+                FocusGateRuntime.publish(
+                    FocusGateVpnStatus(
+                        phase = if (plan.anyRuleActive) FocusGateVpnPhase.READY else FocusGateVpnPhase.OFF,
+                        missingPackages = plan.missingLabels,
+                        message = when {
+                            plan.missingLabels.isNotEmpty() -> "Há regras bloqueadas, mas os aplicativos configurados não estão instalados neste aparelho."
+                            plan.anyRuleActive -> "Condições cumpridas. Nenhum aplicativo precisa ser bloqueado agora."
+                            else -> "Nenhuma regra do Portão de Foco está ativa."
+                        }
+                    )
                 )
-            )
-            return
-        }
+                return@withLock
+            }
 
-        startService(plan.blockedPackages, plan.blockedLabels)
+            if (!hasVpnPermission()) {
+                stopService()
+                val conflict = otherVpnIsActive()
+                FocusGateRuntime.publish(
+                    FocusGateVpnStatus(
+                        phase = if (conflict) FocusGateVpnPhase.VPN_CONFLICT else FocusGateVpnPhase.PERMISSION_REQUIRED,
+                        blockedLabels = plan.blockedLabels,
+                        blockedPackages = plan.blockedPackages,
+                        missingPackages = plan.missingLabels,
+                        otherVpnActive = conflict,
+                        message = if (conflict) {
+                            "Outra VPN está ativa. Autorizar o Constantia como VPN pode substituir a VPN atual do Android."
+                        } else {
+                            "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
+                        }
+                    )
+                )
+                return@withLock
+            }
+
+            startService(plan.blockedPackages, plan.blockedLabels)
+        }
     }
 
-    fun stopNow() {
-        recheckScheduler.cancel()
-        stopService()
-        FocusGateRuntime.publish(FocusGateVpnStatus(phase = FocusGateVpnPhase.READY, message = "Portão de Foco parado manualmente."))
+    suspend fun stopNow() {
+        reconcileMutex.withLock {
+            recheckScheduler.cancel()
+            stopService()
+            FocusGateRuntime.publish(
+                FocusGateVpnStatus(
+                    phase = FocusGateVpnPhase.READY,
+                    message = "Portão de Foco parado manualmente. As regras continuam configuradas."
+                )
+            )
+        }
     }
 
     private fun startService(packages: List<String>, labels: List<String>) {

@@ -13,8 +13,12 @@ class TrainingProgressionEngine {
         sets: List<ExerciseSetEntity>,
         equipment: EquipmentEntity?
     ): ProgressionDecision? {
-        if (sets.size < prescription.plannedSets) return null
-        val considered = sets.sortedBy { it.setIndex }.take(prescription.plannedSets)
+        // Séries extras são histórico real, mas não substituem nem alteram
+        // as séries prescritas na decisão automática de progressão.
+        val considered = sets
+            .filter { it.setIndex in 1..prescription.plannedSets }
+            .sortedBy { it.setIndex }
+        if (considered.size < prescription.plannedSets) return null
         val currentLoad = considered.last().loadKg
         val sameLoad = considered.all { kotlin.math.abs(it.loadKg - currentLoad) < 0.01 }
         if (!sameLoad) {

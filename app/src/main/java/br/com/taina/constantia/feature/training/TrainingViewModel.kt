@@ -9,6 +9,7 @@ import br.com.taina.constantia.core.model.WorkoutMode
 import br.com.taina.constantia.core.repository.*
 import br.com.taina.constantia.engine.TrainingScheduleEngine
 import br.com.taina.constantia.engine.CompletionFeedbackLibrary
+import br.com.taina.constantia.engine.TrainingCycleReview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,8 +30,12 @@ data class TrainingUiState(
     val restrictions: List<RestrictionEntity> = emptyList(),
     val exerciseLibrary: List<ExerciseEntity> = emptyList(),
     val trainingDays: Set<Int> = emptySet(),
+    val targetSessionsPerWeek: Int = 3,
     val normalSessionMinutes: Int? = null,
+    val minimumSessionMinutes: Int = 25,
     val experienceLevel: String = "INTERMEDIATE",
+    val cycleReview: TrainingCycleReview? = null,
+    val planProposal: TrainingPlanProposal? = null,
     val substitutionForId: Long? = null,
     val substitutionCandidates: List<ExerciseEntity> = emptyList(),
     val message: String? = null,
@@ -80,7 +85,14 @@ class TrainingViewModel(
             repository.trainingProfile.collect { profile ->
                 if (profile != null) {
                     val days = scheduleEngine.resolveDays(profile.availableDaysPerWeek, profile.preferredTrainingDaysCsv).map { it.value }.toSet()
-                    _state.value = _state.value.copy(trainingDays = days, normalSessionMinutes = profile.normalSessionMinutes, experienceLevel = profile.experienceLevel)
+                    _state.value = _state.value.copy(
+                        trainingDays = days,
+                        targetSessionsPerWeek = profile.currentTrainingDaysPerWeek
+                            .takeIf { it in 2..5 } ?: _state.value.templates.size.coerceIn(2, 5),
+                        normalSessionMinutes = profile.normalSessionMinutes,
+                        minimumSessionMinutes = profile.minimumSessionMinutes,
+                        experienceLevel = profile.experienceLevel
+                    )
                 }
             }
         }
@@ -89,7 +101,14 @@ class TrainingViewModel(
     private suspend fun refreshPlan(plan: TrainingPlanEntity) {
         val templates = runCatching { repository.loadPlan(plan.id) }.getOrElse { emptyList() }
         val volume = runCatching { repository.calculateWeeklyVolume(templates) }.getOrElse { emptyList() }
-        _state.value = _state.value.copy(loading = false, plan = plan, templates = templates, weeklyVolume = volume)
+        val review = runCatching { repository.buildCycleReview() }.getOrNull()
+        _state.value = _state.value.copy(
+            loading = false,
+            plan = plan,
+            templates = templates,
+            weeklyVolume = volume,
+            cycleReview = review
+        )
     }
 
     fun regeneratePlan() {
@@ -197,6 +216,65 @@ class TrainingViewModel(
     fun setTrainingDays(days: Set<Int>) {
         if (days.isEmpty()) return
         viewModelScope.launch { repository.setPreferredTrainingDays(days) }
+    }
+
+    fun saveTrainingAvailability(
+        days: Set<Int>,
+        sessionsPerWeek: Int,
+        normalMinutes: Int,
+        minimumMinutes: Int
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                repository.setTrainingAvailability(days, sessionsPerWeek, normalMinutes, minimumMinutes)
+            }.onSuccess {
+                _state.value = _state.value.copy(
+                    message = "Disponibilidade atualizada. A ficha não foi trocada automaticamente; o revisor mostrará se vale recalcular.",
+                    planProposal = null
+                )
+                _state.value.plan?.let { refreshPlan(it) }
+            }.onFailure {
+                _state.value = _state.value.copy(error = it.message ?: "Não foi possível salvar a disponibilidade.")
+            }
+        }
+    }
+
+    fun buildCyclePlanProposal() {
+        val review = _state.value.cycleReview ?: return
+        viewModelScope.launch {
+            runCatching { repository.buildCyclePlanProposal(review) }
+                .onSuccess { proposal ->
+                    _state.value = _state.value.copy(
+                        planProposal = proposal,
+                        message = if (proposal == null) "Ainda não há base suficiente para uma proposta." else null
+                    )
+                }
+                .onFailure { _state.value = _state.value.copy(error = it.message ?: "Não foi possível montar a proposta.") }
+        }
+    }
+
+    fun applyCyclePlanProposal() {
+        val proposal = _state.value.planProposal ?: return
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+            runCatching { repository.applyCyclePlanProposal(proposal) }
+                .onSuccess {
+                    _state.value = _state.value.copy(
+                        planProposal = null,
+                        message = "Nova ficha aplicada após sua confirmação."
+                    )
+                }
+                .onFailure {
+                    _state.value = _state.value.copy(
+                        loading = false,
+                        error = it.message ?: "Não foi possível aplicar a proposta."
+                    )
+                }
+        }
+    }
+
+    fun dismissPlanProposal() {
+        _state.value = _state.value.copy(planProposal = null)
     }
 
     fun cancelExecution() {

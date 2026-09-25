@@ -277,8 +277,8 @@ object ExerciseCatalog {
         m("DEAD_BUG", "CORE", 1.0, "PRIMARY")
     )
 
-    val exercises = coreExercises + ExtendedExerciseCatalog.exercises
-    val exerciseMuscles = coreExerciseMuscles + ExtendedExerciseCatalog.exerciseMuscles
+    val exercises = coreExercises + ExtendedExerciseCatalog.exercises + CuratedDatasetExerciseCatalog.exercises
+    val exerciseMuscles = coreExerciseMuscles + ExtendedExerciseCatalog.exerciseMuscles + CuratedDatasetExerciseCatalog.exerciseMuscles
     val timedExerciseCodes = buildSet {
         add("PLANK")
         addAll(ExtendedExerciseCatalog.timedExerciseCodes)

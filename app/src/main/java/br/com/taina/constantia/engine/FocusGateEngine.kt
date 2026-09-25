@@ -15,8 +15,8 @@ class FocusGateEngine {
         if (overrideActive) return FocusGateDecision(true, "Exceção temporária ativa.")
         return when (conditionType) {
             "WORKOUT_TODAY" -> if (state.workoutCompletedToday) {
-                FocusGateDecision(true, "Treino do dia concluído.")
-            } else FocusGateDecision(false, "Conclua o treino do dia.")
+                FocusGateDecision(true, "Treino concluído hoje.")
+            } else FocusGateDecision(false, "Conclua um treino hoje.")
             "FOCUS_SESSIONS_TODAY" -> if (state.completedFocusSessionsToday >= threshold.coerceAtLeast(1)) {
                 FocusGateDecision(true, "Meta de foco concluída.")
             } else FocusGateDecision(false, "Conclua ${threshold.coerceAtLeast(1)} bloco(s) de foco.")

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.taina.constantia.core.database.ActivityDefinitionEntity
 import br.com.taina.constantia.core.model.*
 import br.com.taina.constantia.core.repository.ActivityRepository
+import br.com.taina.constantia.core.repository.CompletedWorkoutSummary
 import br.com.taina.constantia.core.repository.TodayActivity
 import br.com.taina.constantia.core.repository.TodayWorkoutSummary
 import br.com.taina.constantia.core.repository.TrainingRepository
@@ -36,6 +37,12 @@ class TodayViewModel(
     private val _workout = MutableStateFlow<TodayWorkoutSummary?>(null)
     val workout: StateFlow<TodayWorkoutSummary?> = _workout.asStateFlow()
 
+    private val _completedWorkoutToday = MutableStateFlow<CompletedWorkoutSummary?>(null)
+    val completedWorkoutToday: StateFlow<CompletedWorkoutSummary?> = _completedWorkoutToday.asStateFlow()
+
+    private val _overdueWorkout = MutableStateFlow<TodayWorkoutSummary?>(null)
+    val overdueWorkout: StateFlow<TodayWorkoutSummary?> = _overdueWorkout.asStateFlow()
+
     private val _studyGoals = MutableStateFlow<List<TodayStudyGoal>>(emptyList())
     val studyGoals: StateFlow<List<TodayStudyGoal>> = _studyGoals.asStateFlow()
 
@@ -55,8 +62,18 @@ class TodayViewModel(
 
     fun refreshWorkout() {
         viewModelScope.launch {
-            runCatching { trainingRepository.ensureReady(); trainingRepository.getTodayWorkout(today) }
-                .onSuccess { _workout.value = it }
+            runCatching {
+                trainingRepository.ensureReady()
+                Triple(
+                    trainingRepository.getTodayWorkout(today),
+                    trainingRepository.getCompletedWorkout(today),
+                    trainingRepository.getMostRecentOverdueWorkout(today)
+                )
+            }.onSuccess { (scheduled, completed, overdue) ->
+                _workout.value = scheduled
+                _completedWorkoutToday.value = completed
+                _overdueWorkout.value = overdue
+            }
         }
     }
 

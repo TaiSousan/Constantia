@@ -63,7 +63,8 @@ data class UserProfileEntity(val primaryGoal: String)
 data class TrainingProfileEntity(
     val availableDaysPerWeek: Int,
     val experienceLevel: String,
-    val normalSessionMinutes: Int
+    val normalSessionMinutes: Int,
+    val currentTrainingDaysPerWeek: Int = availableDaysPerWeek
 )
 EOF
 cat > "$TMP/ExperienceLevelStub.kt" <<'EOF'
@@ -81,7 +82,7 @@ EOF
   "$ENGINE/PomodoroAdaptationEngine.kt" "$ENGINE/StudyReviewEngine.kt" "$ENGINE/StudyScheduleEngine.kt" \
   "$ENGINE/NotificationPlannerEngine.kt" "$ENGINE/RomanQuoteLibrary.kt" "$ENGINE/FocusGateEngine.kt" \
   "$ENGINE/FocusGateNetworkPlanEngine.kt" "$ENGINE/ProgressEngine.kt" \
-  "$ENGINE/SmartMealParser.kt" "$ENGINE/StudyQuestionGenerator.kt" "$ENGINE/ExerciseAdaptationEngine.kt" "$ENGINE/TrainingScheduleEngine.kt" "$ENGINE/TrainingPrescriptionEngine.kt" \
+  "$ENGINE/SmartMealParser.kt" "$ENGINE/StudyQuestionGenerator.kt" "$ENGINE/ExerciseAdaptationEngine.kt" "$ENGINE/TrainingScheduleEngine.kt" "$ENGINE/TrainingPrescriptionEngine.kt" "$ENGINE/TrainingCycleReviewEngine.kt" \
   "$ENGINE/TrainingTechniqueEngine.kt" "$ENGINE/CompletionFeedbackLibrary.kt" \
   "$ROOT/engine-spec/ActivityScheduleSpec.kt" \
   "$ROOT/engine-spec/V04StudyEngineSpec.kt" \
@@ -89,7 +90,7 @@ EOF
   "$ROOT/engine-spec/V06FocusGateNetworkSpec.kt" \
   "$ROOT/engine-spec/V07NutritionEngineSpec.kt" \
   "$ROOT/engine-spec/V08ProgressEngineSpec.kt" \
-  "$ROOT/engine-spec/V09SmartEngineSpec.kt" "$ROOT/engine-spec/RC3ValidationSpec.kt" "$ROOT/engine-spec/RC31TechniqueSpec.kt" \
+  "$ROOT/engine-spec/V09SmartEngineSpec.kt" "$ROOT/engine-spec/RC3ValidationSpec.kt" "$ROOT/engine-spec/RC31TechniqueSpec.kt" "$ROOT/engine-spec/RC32ScheduleSpec.kt" "$ROOT/engine-spec/RC32AdaptiveTrainingSpec.kt" \
   -include-runtime -d "$TMP/engine-tests.jar" >/dev/null
 
 for cls in \
@@ -101,7 +102,9 @@ for cls in \
   V08ProgressEngineSpecKt \
   V09SmartEngineSpecKt \
   RC3ValidationSpecKt \
-  RC31TechniqueSpecKt; do
+  RC31TechniqueSpecKt \
+  RC32ScheduleSpecKt \
+  RC32AdaptiveTrainingSpecKt; do
   "$JAVA" -cp "$TMP/engine-tests.jar" "$cls"
 done
 

@@ -108,6 +108,15 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
                 } else {
                     OutlinedButton(onClick = viewModel::refreshFocusGate) { Text("Reavaliar agora") }
                 }
+                if (vpnStatus.phase == FocusGateVpnPhase.ACTIVE) {
+                    Button(onClick = viewModel::stopFocusGate, modifier = Modifier.fillMaxWidth()) {
+                        Text("Parar VPN agora")
+                    }
+                    Text(
+                        "Interrompe o túnel local imediatamente. As regras continuam salvas; para manter o Portão desligado, desative os respectivos switches.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 
@@ -125,14 +134,14 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
                     }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                         OutlinedTextField(
-                            value = if (rule.conditionType == "FOCUS_SESSIONS_TODAY") "${rule.threshold} blocos de foco" else "Treino do dia",
+                            value = if (rule.conditionType == "FOCUS_SESSIONS_TODAY") "${rule.threshold} blocos de foco" else "Treino concluído hoje",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Libera quando") },
                             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                         )
                         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            DropdownMenuItem(text = { Text("Treino do dia concluído") }, onClick = {
+                            DropdownMenuItem(text = { Text("Treino concluído hoje") }, onClick = {
                                 viewModel.setGateCondition(rule.id, "WORKOUT_TODAY", 1); expanded = false
                             })
                             DropdownMenuItem(text = { Text("2 blocos de foco concluídos") }, onClick = {

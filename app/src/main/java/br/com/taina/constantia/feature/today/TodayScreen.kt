@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFocus: () -> Unit, onOpenNutrition: () -> Unit) {
     val activities by viewModel.activities.collectAsState()
     val workout by viewModel.workout.collectAsState()
+    val completedWorkoutToday by viewModel.completedWorkoutToday.collectAsState()
+    val overdueWorkout by viewModel.overdueWorkout.collectAsState()
     val studyGoals by viewModel.studyGoals.collectAsState()
     val dueQuestionCount by viewModel.dueQuestionCount.collectAsState()
     val nutrition by viewModel.nutrition.collectAsState()
@@ -41,6 +43,35 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
             item {
                 Text("$done / ${activities.size} atividades concluídas", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(8.dp))
+                completedWorkoutToday?.let { completed ->
+                    if (workout?.template?.id != completed.template.id) {
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Treino concluído hoje", style = MaterialTheme.typography.titleMedium)
+                                Text(completed.template.name)
+                                Text(
+                                    "Registrado pela sessão realmente executada. Isso não conclui automaticamente outro treino programado para hoje.",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+                }
+                overdueWorkout?.let { item ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Treino atrasado", style = MaterialTheme.typography.titleMedium)
+                            Text(item.template.name)
+                            Text(
+                                "Previsto para ${dayName(item.scheduledDate.dayOfWeek)} e ainda pendente.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Button(onClick = onOpenTraining) { Text("Abrir treino e recuperar") }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
                 workout?.let { item ->
                     Card(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,6 +158,16 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
         viewModel.addActivity(name, frequency, times, days)
         showAdd = false
     }
+}
+
+private fun dayName(day: DayOfWeek): String = when (day) {
+    DayOfWeek.MONDAY -> "segunda-feira"
+    DayOfWeek.TUESDAY -> "terça-feira"
+    DayOfWeek.WEDNESDAY -> "quarta-feira"
+    DayOfWeek.THURSDAY -> "quinta-feira"
+    DayOfWeek.FRIDAY -> "sexta-feira"
+    DayOfWeek.SATURDAY -> "sábado"
+    DayOfWeek.SUNDAY -> "domingo"
 }
 
 @Composable

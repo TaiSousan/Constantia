@@ -1,6 +1,7 @@
 package br.com.taina.constantia.engine
 
 import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlin.math.pow
 
 class TrainingScheduleEngine {
@@ -23,6 +24,17 @@ class TrainingScheduleEngine {
         return combinations(available, count)
             .minWithOrNull(compareBy<List<DayOfWeek>> { spacingPenalty(it) }.thenBy { it.joinToString(",") { d -> d.value.toString() } })
             ?: available.take(count)
+    }
+
+    /**
+     * Índice do template efetivamente programado para a data.
+     * Dias sem sessão programada retornam null.
+     */
+    fun templateIndexFor(date: LocalDate, sessionCount: Int, csv: String): Int? {
+        if (sessionCount <= 0) return null
+        val scheduledDays = resolveScheduledDays(sessionCount, csv)
+        val dayIndex = scheduledDays.indexOf(date.dayOfWeek)
+        return if (dayIndex >= 0) dayIndex % sessionCount else null
     }
 
     private fun parseExplicit(csv: String): List<DayOfWeek> = csv.split(',')

@@ -36,6 +36,14 @@ fun main() {
         overrideActive = false
     )
     check(!locked.unlocked)
+    val workoutUnlocked = gate.evaluate(
+        "WORKOUT_TODAY", 1,
+        FocusGateState(workoutCompletedToday = true, completedFocusSessionsToday = 0),
+        overrideActive = false
+    )
+    check(workoutUnlocked.unlocked)
+    check(workoutUnlocked.reason == "Treino concluído hoje.")
+
     val focusUnlocked = gate.evaluate(
         "FOCUS_SESSIONS_TODAY", 2,
         FocusGateState(workoutCompletedToday = false, completedFocusSessionsToday = 2),

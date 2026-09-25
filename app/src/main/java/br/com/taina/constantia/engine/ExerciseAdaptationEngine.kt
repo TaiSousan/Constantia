@@ -33,6 +33,9 @@ class ExerciseAdaptationEngine {
             .filter { it.equipmentCode in availableEquipmentCodes }
             .filter { it.equipmentCode !in excludedEquipmentCodes }
             .filterNot { isBlocked(it, restrictions) }
+            .filter { candidate ->
+                primaryMusclesOverlap(sourceLinks, linksByExercise[candidate.code].orEmpty())
+            }
             .map { candidate -> candidate to score(source, candidate, sourceLinks, linksByExercise[candidate.code].orEmpty()) }
             .filter { it.second >= 35 }
             .sortedWith(compareByDescending<Pair<ExerciseEntity, Int>> { it.second }.thenBy { it.first.name })
@@ -54,6 +57,17 @@ class ExerciseAdaptationEngine {
             if (item !in diversified) diversified += item
         }
         return diversified.take(limit).map { it.first }
+    }
+
+    private fun primaryMusclesOverlap(
+        sourceLinks: List<ExerciseMuscleEntity>,
+        candidateLinks: List<ExerciseMuscleEntity>
+    ): Boolean {
+        val sourcePrimary = sourceLinks.filter { it.role == "PRIMARY" }.map { it.muscleCode }.toSet()
+        val candidatePrimary = candidateLinks.filter { it.role == "PRIMARY" }.map { it.muscleCode }.toSet()
+        return sourcePrimary.isNotEmpty() &&
+            candidatePrimary.isNotEmpty() &&
+            sourcePrimary.any { it in candidatePrimary }
     }
 
     private fun score(
@@ -96,7 +110,7 @@ class ExerciseAdaptationEngine {
             setOf("HORIZONTAL_PULL", "SCAPULAR_CONTROL", "SHOULDER_HORIZONTAL_ABDUCTION"),
             setOf("TRUNK_FLEXION", "CORE_STABILITY", "CORE_DYNAMIC", "ANTI_ROTATION", "TRUNK_ROTATION", "LATERAL_FLEXION", "HIP_FLEXION_CORE"),
             setOf("SHOULDER_ABDUCTION", "SHOULDER_FLEXION", "SHOULDER_HORIZONTAL_ABDUCTION"),
-            setOf("ELBOW_FLEXION", "WRIST_FLEXION", "WRIST_EXTENSION", "GRIP_ISOMETRIC"),
+            setOf("WRIST_FLEXION", "WRIST_EXTENSION", "GRIP_ISOMETRIC"),
             setOf("HIP_ADDUCTION", "ISOMETRIC_ADDUCTION")
         )
         if (groups.any { a in it && b in it }) return 70

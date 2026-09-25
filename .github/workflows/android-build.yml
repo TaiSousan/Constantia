@@ -99,7 +99,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
-          name: constantia-1.0.0-rc3.1-release
+          name: constantia-1.0.0-rc3.2-release
           path: |
             app/build/outputs/apk/release/app-release.apk
             app/build/outputs/apk/release/app-release.apk.sha256

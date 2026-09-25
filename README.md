@@ -265,6 +265,27 @@ A próxima etapa deixa de adicionar módulos grandes e passa a ser **estabiliza�
 
 A partir da v1.0, a prioridade será **confiabilidade e uso diário**, não adicionar funcionalidades novas.
 
+## 1.0 RC3.2 — treino real, séries extras e biblioteca ampliada
+
+- `versionName`: `1.0.0-rc3.2` (`versionCode = 14`);
+- conclusão vinculada ao template/sessão efetivamente executado;
+- treino atrasado pode ser recuperado sem concluir automaticamente outro template previsto para hoje;
+- tela Hoje diferencia treino realizado, treino previsto e atraso pendente;
+- `FocusGateController.reconcile()` é serializado para evitar reavaliações concorrentes com plano obsoleto;
+- ação explícita **Parar VPN agora** no Portão de Foco;
+- séries extras voluntárias podem ser registradas com carga, repetições/tempo e RIR;
+- séries extras entram no histórico da sessão, mas a progressão automática continua avaliando somente o número de séries prescrito;
+- biblioteca ampliada metadata-only com 1.324 exercícios para consulta offline;
+- os 169 exercícios curados anteriores são preservados e 69 exercícios do dataset foram promovidos após mapeamento conservador; o catálogo inteligente passa a 238;
+- substituições automáticas agora também exigem sobreposição de músculo primário, reduzindo equivalências inadequadas;
+- dias disponíveis e frequência desejada são separados: até 7 dias podem ser marcados como disponíveis, enquanto o motor de força usa 2–5 sessões semanais;
+- duração normal pode ser ajustada entre 30 e 180 min, sem preencher tempo livre com volume por obrigação;
+- novo Revisor de Ciclo usa aderência, progressão, possível platô, equipamento e carga de recuperação histórica para decidir se vale propor nova ficha;
+- o revisor nunca troca a ficha sozinho: ele mostra a proposta completa e só aplica após confirmação explícita;
+- nomes em português aparecem apenas onde a tradução conservadora é segura; o nome inglês original é preservado;
+- GIFs/JPGs de terceiros não são incorporados. `media_id` fica preservado para um futuro pacote de mídia local com licença própria;
+- sem alteração do schema Room (permanece v6) e sem adição da permissão `INTERNET`.
+
 ## 1.0 RC3.1 — estabilização para uso real
 
 - `versionName`: `1.0.0-rc3.1`

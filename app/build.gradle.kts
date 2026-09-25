@@ -12,8 +12,8 @@ android {
         applicationId = "br.com.taina.constantia"
         minSdk = 26
         targetSdk = 37
-        versionCode = 13
-        versionName = "1.0.0-rc3.1"
+        versionCode = 14
+        versionName = "1.0.0-rc3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

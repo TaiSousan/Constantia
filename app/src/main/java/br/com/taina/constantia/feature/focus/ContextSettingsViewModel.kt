@@ -86,6 +86,13 @@ class ContextSettingsViewModel(
         }
     }
 
+    fun stopFocusGate() {
+        viewModelScope.launch {
+            focusGateController.stopNow()
+            _gateStatuses.value = repository.gateStatuses()
+        }
+    }
+
     fun refreshFocusGate() {
         viewModelScope.launch {
             refreshGateStatus()
