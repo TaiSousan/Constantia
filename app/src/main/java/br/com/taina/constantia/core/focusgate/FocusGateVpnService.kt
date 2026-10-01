@@ -24,14 +24,14 @@ class FocusGateVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
-                clearPersistedPlan()
+                clearPersistedPlan(this)
                 stopGate()
             }
             ACTION_APPLY -> {
                 val packages = intent.getStringArrayListExtra(EXTRA_PACKAGES).orEmpty().distinct()
                 val labels = intent.getStringArrayListExtra(EXTRA_LABELS).orEmpty()
                 if (packages.isEmpty()) {
-                    clearPersistedPlan()
+                    clearPersistedPlan(this)
                     stopGate()
                 } else {
                     FocusGatePlanStore.save(this, packages, labels)
