@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
         <package android:name="com.instagram.android" />
         <package android:name="com.discord" />
+        <package android:name="com.zhiliaoapp.musically" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.twitter.android" />
+        <package android:name="com.instagram.barcelona" />
+        <package android:name="com.reddit.frontpage" />
+        <package android:name="com.google.android.youtube" />
     </queries>
 
     <application
@@ -37,6 +44,24 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="local_per_app_focus_gate_that_discards_network_packets_for_user_selected_distraction_apps" />
         </service>
+
+        <service
+            android:name=".core.focusgate.FocusGateAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/focus_gate_accessibility_service" />
+        </service>
+
+        <activity
+            android:name=".feature.focus.FocusBlockerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true" />
 
         <activity
             android:name=".MainActivity"

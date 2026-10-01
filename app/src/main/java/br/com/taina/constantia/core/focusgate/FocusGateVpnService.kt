@@ -34,40 +34,20 @@ class FocusGateVpnService : VpnService() {
                     clearPersistedPlan()
                     stopGate()
                 } else {
-                    persistPlan(packages, labels)
+                    FocusGatePlanStore.save(this, packages, labels)
                     applyGate(packages, labels)
                 }
             }
             else -> {
                 // START_STICKY may recreate the service with a null Intent after process death.
                 // Restore the last active local blocking plan instead of silently leaving the gate open.
-                val restored = restorePlan()
-                if (restored.first.isEmpty()) stopGate() else applyGate(restored.first, restored.second)
+                val restored = FocusGatePlanStore.load(this)
+                if (restored.packages.isEmpty()) stopGate() else applyGate(restored.packages, restored.labels)
             }
         }
         return START_STICKY
     }
 
-
-    private fun persistPlan(packages: List<String>, labels: List<String>) {
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-            .putString(PREF_PACKAGES, packages.joinToString("\n"))
-            .putString(PREF_LABELS, labels.joinToString("\n"))
-            .apply()
-    }
-
-    private fun restorePlan(): Pair<List<String>, List<String>> {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        fun decode(key: String): List<String> = prefs.getString(key, null)
-            ?.lineSequence()
-            ?.map(String::trim)
-            ?.filter(String::isNotEmpty)
-            ?.toList()
-            .orEmpty()
-        return decode(PREF_PACKAGES) to decode(PREF_LABELS)
-    }
-
-    private fun clearPersistedPlan() = clearPersistedPlan(this)
 
     private fun applyGate(packages: List<String>, labels: List<String>) {
         ensureChannel()
@@ -117,27 +97,40 @@ class FocusGateVpnService : VpnService() {
 
         tunnel = established
         running.set(true)
-        discardExecutor = Executors.newSingleThreadExecutor().also { executor ->
-            executor.execute {
-                val buffer = ByteArray(32 * 1024)
-                runCatching {
-                    FileInputStream(established.fileDescriptor).use { input ->
-                        while (running.get()) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                        }
-                    }
-                }
-            }
-        }
         FocusGateRuntime.publish(
             FocusGateVpnStatus(
                 phase = FocusGateVpnPhase.ACTIVE,
                 blockedLabels = labels,
                 blockedPackages = installed,
+                discardedBytes = 0L,
                 message = "Portão de Foco ativo. A rede dos aplicativos bloqueados está sendo descartada localmente."
             )
         )
+        discardExecutor = Executors.newSingleThreadExecutor().also { executor ->
+            executor.execute {
+                val buffer = ByteArray(32 * 1024)
+                var discardedBytes = 0L
+                var lastPublished = 0L
+                runCatching {
+                    FileInputStream(established.fileDescriptor).use { input ->
+                        while (running.get()) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            if (count > 0) {
+                                discardedBytes += count
+                                if (discardedBytes - lastPublished >= 64 * 1024) {
+                                    lastPublished = discardedBytes
+                                    val current = FocusGateRuntime.status.value
+                                    if (current.phase == FocusGateVpnPhase.ACTIVE) {
+                                        FocusGateRuntime.publish(current.copy(discardedBytes = discardedBytes))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun stopGate() {
@@ -211,15 +204,8 @@ class FocusGateVpnService : VpnService() {
         const val EXTRA_LABELS = "focus_gate_labels"
         private const val CHANNEL_ID = "constantia_focus_gate"
         private const val NOTIFICATION_ID = 8405
-        private const val PREFS_NAME = "constantia_focus_gate_runtime"
-        private const val PREF_PACKAGES = "blocked_packages"
-        private const val PREF_LABELS = "blocked_labels"
-
         fun clearPersistedPlan(context: Context) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .remove(PREF_PACKAGES)
-                .remove(PREF_LABELS)
-                .apply()
+            FocusGatePlanStore.clear(context)
         }
     }
 }

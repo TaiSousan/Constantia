@@ -13,6 +13,9 @@ private val Context.dataStore by preferencesDataStore(name = "constantia_prefere
 data class PreferencesState(
     val defaultPomodoroMinutes: Int = 25,
     val defaultBreakMinutes: Int = 5,
+    val pomodoroSound: Boolean = true,
+    val pomodoroVibration: Boolean = true,
+    val autoStartBreak: Boolean = true,
     val contextualNotifications: Boolean = true,
     val motivationalNotifications: Boolean = true,
     val workoutReminders: Boolean = true,
@@ -26,6 +29,9 @@ class AppPreferences(private val context: Context) {
     private object Keys {
         val pomodoro = intPreferencesKey("pomodoro_minutes")
         val breakMinutes = intPreferencesKey("break_minutes")
+        val pomodoroSound = booleanPreferencesKey("pomodoro_sound")
+        val pomodoroVibration = booleanPreferencesKey("pomodoro_vibration")
+        val autoStartBreak = booleanPreferencesKey("pomodoro_auto_start_break")
         val contextual = booleanPreferencesKey("contextual_notifications")
         val motivational = booleanPreferencesKey("motivational_notifications")
         val workoutReminders = booleanPreferencesKey("workout_reminders")
@@ -39,6 +45,9 @@ class AppPreferences(private val context: Context) {
         PreferencesState(
             defaultPomodoroMinutes = prefs[Keys.pomodoro] ?: 25,
             defaultBreakMinutes = prefs[Keys.breakMinutes] ?: 5,
+            pomodoroSound = prefs[Keys.pomodoroSound] ?: true,
+            pomodoroVibration = prefs[Keys.pomodoroVibration] ?: true,
+            autoStartBreak = prefs[Keys.autoStartBreak] ?: true,
             contextualNotifications = prefs[Keys.contextual] ?: true,
             motivationalNotifications = prefs[Keys.motivational] ?: true,
             workoutReminders = prefs[Keys.workoutReminders] ?: true,
@@ -53,6 +62,14 @@ class AppPreferences(private val context: Context) {
         context.dataStore.edit {
             it[Keys.pomodoro] = minutes.coerceIn(5, 120)
             it[Keys.breakMinutes] = breakMinutes.coerceIn(1, 60)
+        }
+    }
+
+    suspend fun setPomodoroAlerts(sound: Boolean, vibration: Boolean, autoStartBreak: Boolean) {
+        context.dataStore.edit {
+            it[Keys.pomodoroSound] = sound
+            it[Keys.pomodoroVibration] = vibration
+            it[Keys.autoStartBreak] = autoStartBreak
         }
     }
 

@@ -19,6 +19,7 @@ data class FocusGateVpnStatus(
     val blockedPackages: List<String> = emptyList(),
     val missingPackages: List<String> = emptyList(),
     val otherVpnActive: Boolean = false,
+    val discardedBytes: Long = 0L,
     val message: String = "Portão de foco inativo."
 )
 

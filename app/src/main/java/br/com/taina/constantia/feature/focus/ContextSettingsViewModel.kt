@@ -31,6 +31,9 @@ class ContextSettingsViewModel(
     val gateRules = repository.gateRules.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val vpnStatus = focusGateController.status
 
+    private val _strictShieldEnabled = MutableStateFlow(focusGateController.isStrictShieldEnabled())
+    val strictShieldEnabled: StateFlow<Boolean> = _strictShieldEnabled.asStateFlow()
+
     private val _gateStatuses = MutableStateFlow<List<GateRuleStatus>>(emptyList())
     val gateStatuses: StateFlow<List<GateRuleStatus>> = _gateStatuses.asStateFlow()
 
@@ -43,10 +46,12 @@ class ContextSettingsViewModel(
     }
 
     fun refreshGateStatus() {
+        _strictShieldEnabled.value = focusGateController.isStrictShieldEnabled()
         viewModelScope.launch { _gateStatuses.value = repository.gateStatuses() }
     }
 
     fun vpnPermissionIntent(): Intent? = focusGateController.prepareIntent()
+    fun strictShieldSettingsIntent(): Intent = focusGateController.strictShieldSettingsIntent()
 
     fun onVpnPermissionResult(granted: Boolean) {
         viewModelScope.launch {
@@ -94,8 +99,9 @@ class ContextSettingsViewModel(
     }
 
     fun refreshFocusGate() {
+        _strictShieldEnabled.value = focusGateController.isStrictShieldEnabled()
         viewModelScope.launch {
-            refreshGateStatus()
+            _gateStatuses.value = repository.gateStatuses()
             focusGateController.reconcile()
         }
     }

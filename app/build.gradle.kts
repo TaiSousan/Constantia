@@ -12,8 +12,8 @@ android {
         applicationId = "br.com.taina.constantia"
         minSdk = 26
         targetSdk = 37
-        versionCode = 14
-        versionName = "1.0.0-rc3.2"
+        versionCode = 15
+        versionName = "1.0.0-rc3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -88,6 +88,7 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 
     testImplementation(kotlin("test"))
 }

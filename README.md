@@ -189,6 +189,15 @@ O namespace e os pacotes internos também são `br.com.taina.constantia`, alinha
 - notificações contextuais.
 
 ### Portão de Foco
+
+**RC3.3 — proteção em duas camadas:**
+- a VPN local continua cortando a rede somente dos apps bloqueados;
+- o **Bloqueio estrito opcional** pode impedir que o app bloqueado permaneça aberto usando um `AccessibilityService` de escopo mínimo;
+- o serviço observa apenas o nome do pacote em primeiro plano (`packageName`) e está configurado para não ler conteúdo da tela, não fazer gestos e não capturar screenshots;
+- Instagram, Discord, TikTok, Facebook, X, Threads, Reddit e YouTube passam a existir como regras conhecidas, todas novas regras entram desativadas;
+- a tela mostra os bytes interceptados pela VPN para facilitar diagnóstico;
+- o usuário pode interromper imediatamente as duas camadas com **Parar bloqueio agora**.
+
 - regras independentes para Instagram/Discord;
 - desbloqueio por treino ou número de blocos de foco;
 - exceção temporária;
@@ -313,3 +322,21 @@ A RC2 serviu como primeiro APK de teste. A RC3/RC3.1 incorpora os ajustes encont
 - o Manifest continua sem permissão `INTERNET` e sem permissões de armazenamento externo;
 - feedback curto de conclusão para treino, estudo e atividades, mantendo o foco em competência e progresso em vez de recompensas artificiais;
 - referências externas do catálogo documentadas em `EXERCISE_SOURCES.md`, sem incorporar GIFs/imagens de terceiros.
+
+## 1.0 RC3.3 — estudo local, Pomodoro completo e circuitos opcionais
+
+- `versionName`: `1.0.0-rc3.3` (`versionCode = 15`);
+- mantém o schema Room na versão 6: atualização sem migração de banco e sem apagar histórico;
+- Pomodoro passa a controlar estudo e descanso separadamente, com durações configuráveis, som, vibração e início automático opcional do descanso;
+- descanso não é contabilizado como tempo estudado;
+- PDFs de estudo podem ser escolhidos pelo Storage Access Framework, processados localmente e indexados por página;
+- o PDF é usado apenas durante a importação: uma cópia temporária é apagada ao final e o Constantia guarda apenas o índice textual local;
+- materiais indexados podem ser pesquisados por termo, usados para gerar questões locais com referência de página e removidos pelo usuário sem apagar histórico, disciplinas ou questões;
+- inclui um atalho opcional para cadastrar as cinco disciplinas do semestre SENAR e seus temas principais, sem criar metas automaticamente;
+- adiciona uma biblioteca de leitura local para cadastrar livros, autor opcional, status e progresso por número de páginas ou porcentagem;
+- a biblioteca usa um arquivo interno atômico separado do Room, permitindo acompanhar leituras sem alterar o schema v6 nem o histórico dos demais módulos;
+- metas/atividades da tela Hoje agora podem ser editadas ou excluídas; excluir apenas desativa a meta e preserva o histórico já registrado;
+- circuitos rápidos opcionais podem ser sugeridos para peso do corpo, halteres, kettlebell e bolsa de peso;
+- circuitos podem ser usados como alternativa ao cardio opcional ou como sessão extra curta, mas não entram na progressão da ficha nem substituem automaticamente o treino programado;
+- restrições estruturadas de movimento continuam sendo respeitadas ao montar os circuitos;
+- permanece sem permissão `INTERNET` e sem permissões amplas de armazenamento.

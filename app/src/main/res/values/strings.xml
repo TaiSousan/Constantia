@@ -1,0 +1,3 @@
+<resources>
+    <string name="focus_gate_accessibility_description">Bloqueia a abertura somente dos aplicativos escolhidos quando o Portão de Foco estiver ativo. Não lê o conteúdo da tela.</string>
+</resources>

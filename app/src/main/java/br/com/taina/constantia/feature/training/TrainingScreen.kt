@@ -29,6 +29,9 @@ import br.com.taina.constantia.core.repository.DatasetExerciseLibrary
 import br.com.taina.constantia.core.repository.CuratedDatasetExerciseCatalog
 import br.com.taina.constantia.core.repository.WorkoutTemplateDetail
 import br.com.taina.constantia.engine.TrainingTechniqueEngine
+import br.com.taina.constantia.engine.CircuitEquipment
+import br.com.taina.constantia.engine.CircuitPurpose
+import br.com.taina.constantia.engine.CircuitSuggestion
 import br.com.taina.constantia.engine.TrainingCycleReviewStatus
 import br.com.taina.constantia.engine.TechniqueExerciseInput
 import br.com.taina.constantia.engine.TrainingTechniqueSuggestion
@@ -64,6 +67,7 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
     var showRestrictions by remember { mutableStateOf(false) }
     var showDays by remember { mutableStateOf(false) }
     var showDatasetLibrary by remember { mutableStateOf(false) }
+    var showCircuitBuilder by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -86,6 +90,12 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
                     "${state.targetSessionsPerWeek} treino(s)/sem · " +
                     "${state.normalSessionMinutes ?: 60} min"
             )
+        }
+        OutlinedButton(onClick = { showCircuitBuilder = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("Circuito rápido opcional")
+        }
+        state.circuitSuggestion?.let { suggestion ->
+            CircuitSuggestionCard(suggestion, onClose = viewModel::clearCircuit)
         }
 
         val plan = state.plan
@@ -186,6 +196,100 @@ private fun TrainingPlanScreen(state: TrainingUiState, viewModel: TrainingViewMo
         )
     }
     if (showDatasetLibrary) ExerciseDatasetDialog { showDatasetLibrary = false }
+    if (showCircuitBuilder) {
+        CircuitBuilderDialog(
+            onDismiss = { showCircuitBuilder = false },
+            onBuild = { minutes, equipment, purpose ->
+                viewModel.buildCircuit(minutes, equipment, purpose)
+                showCircuitBuilder = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun CircuitBuilderDialog(
+    onDismiss: () -> Unit,
+    onBuild: (Int, Set<CircuitEquipment>, CircuitPurpose) -> Unit
+) {
+    var minutes by remember { mutableIntStateOf(15) }
+    var purpose by remember { mutableStateOf(CircuitPurpose.CARDIO_REPLACEMENT) }
+    var equipment by remember { mutableStateOf(setOf(CircuitEquipment.BODYWEIGHT)) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Montar circuito") },
+        text = {
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text("Uso", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = purpose == CircuitPurpose.CARDIO_REPLACEMENT,
+                        onClick = { purpose = CircuitPurpose.CARDIO_REPLACEMENT },
+                        label = { Text("No lugar do cardio") }
+                    )
+                    FilterChip(
+                        selected = purpose == CircuitPurpose.QUICK_EXTRA,
+                        onClick = { purpose = CircuitPurpose.QUICK_EXTRA },
+                        label = { Text("Extra rápido") }
+                    )
+                }
+                Text("Duração", style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(10, 12, 15, 20, 25).forEach { value ->
+                        FilterChip(selected = minutes == value, onClick = { minutes = value }, label = { Text("$value min") })
+                    }
+                }
+                Text("Equipamentos disponíveis", style = MaterialTheme.typography.labelLarge)
+                CircuitEquipment.values().forEach { item ->
+                    val selected = item in equipment
+                    FilterChip(
+                        selected = selected,
+                        onClick = {
+                            equipment = if (selected) equipment - item else equipment + item
+                            if (equipment.isEmpty()) equipment = setOf(CircuitEquipment.BODYWEIGHT)
+                        },
+                        label = { Text(circuitEquipmentLabel(item)) }
+                    )
+                }
+                Text(
+                    "O circuito é opcional, respeita restrições estruturadas de movimento cadastradas e não altera sua ficha nem a progressão.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        confirmButton = { Button(onClick = { onBuild(minutes, equipment, purpose) }) { Text("Sugerir circuito") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+@Composable
+private fun CircuitSuggestionCard(suggestion: CircuitSuggestion, onClose: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(suggestion.title, style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = onClose) { Text("Fechar") }
+            }
+            Text("${suggestion.minutes} min · ${suggestion.rounds} voltas · ${suggestion.workSeconds}s de trabalho / ${suggestion.transitionSeconds}s de troca", style = MaterialTheme.typography.bodySmall)
+            suggestion.moves.forEachIndexed { index, move ->
+                Text("${index + 1}. ${move.name} — ${circuitEquipmentLabel(move.equipment)}")
+                Text(move.cue, style = MaterialTheme.typography.labelSmall)
+            }
+            HorizontalDivider()
+            Text(suggestion.rationale, style = MaterialTheme.typography.bodySmall)
+            Text("Mantenha intensidade moderada e encerre a série antes de a técnica deteriorar. Circuitos não contam como sessão de força do plano nesta versão.", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+private fun circuitEquipmentLabel(item: CircuitEquipment): String = when (item) {
+    CircuitEquipment.BODYWEIGHT -> "Peso do corpo"
+    CircuitEquipment.DUMBBELLS -> "Halteres"
+    CircuitEquipment.KETTLEBELL -> "Kettlebell"
+    CircuitEquipment.SANDBAG -> "Bolsa de peso"
 }
 
 @Composable

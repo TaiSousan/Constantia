@@ -76,6 +76,12 @@ interface ActivityDao {
     @Insert
     suspend fun insertDefinition(definition: ActivityDefinitionEntity): Long
 
+    @Upsert
+    suspend fun upsertDefinition(definition: ActivityDefinitionEntity)
+
+    @Query("UPDATE activity_definitions SET active = 0 WHERE id = :id")
+    suspend fun deactivateDefinition(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOccurrence(occurrence: ActivityOccurrenceEntity): Long
 

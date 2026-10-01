@@ -83,14 +83,14 @@ EOF
   "$ENGINE/NotificationPlannerEngine.kt" "$ENGINE/RomanQuoteLibrary.kt" "$ENGINE/FocusGateEngine.kt" \
   "$ENGINE/FocusGateNetworkPlanEngine.kt" "$ENGINE/ProgressEngine.kt" \
   "$ENGINE/SmartMealParser.kt" "$ENGINE/StudyQuestionGenerator.kt" "$ENGINE/ExerciseAdaptationEngine.kt" "$ENGINE/TrainingScheduleEngine.kt" "$ENGINE/TrainingPrescriptionEngine.kt" "$ENGINE/TrainingCycleReviewEngine.kt" \
-  "$ENGINE/TrainingTechniqueEngine.kt" "$ENGINE/CompletionFeedbackLibrary.kt" \
+  "$ENGINE/TrainingTechniqueEngine.kt" "$ENGINE/CompletionFeedbackLibrary.kt" "$ENGINE/PomodoroCycleEngine.kt" "$ENGINE/CircuitWorkoutEngine.kt" "$ENGINE/ReadingProgressEngine.kt" \
   "$ROOT/engine-spec/ActivityScheduleSpec.kt" \
   "$ROOT/engine-spec/V04StudyEngineSpec.kt" \
   "$ROOT/engine-spec/V05ContextEngineSpec.kt" \
   "$ROOT/engine-spec/V06FocusGateNetworkSpec.kt" \
   "$ROOT/engine-spec/V07NutritionEngineSpec.kt" \
   "$ROOT/engine-spec/V08ProgressEngineSpec.kt" \
-  "$ROOT/engine-spec/V09SmartEngineSpec.kt" "$ROOT/engine-spec/RC3ValidationSpec.kt" "$ROOT/engine-spec/RC31TechniqueSpec.kt" "$ROOT/engine-spec/RC32ScheduleSpec.kt" "$ROOT/engine-spec/RC32AdaptiveTrainingSpec.kt" \
+  "$ROOT/engine-spec/V09SmartEngineSpec.kt" "$ROOT/engine-spec/RC3ValidationSpec.kt" "$ROOT/engine-spec/RC31TechniqueSpec.kt" "$ROOT/engine-spec/RC32ScheduleSpec.kt" "$ROOT/engine-spec/RC32AdaptiveTrainingSpec.kt" "$ROOT/engine-spec/RC33StudyCircuitSpec.kt" "$ROOT/engine-spec/RC33ReadingSpec.kt" \
   -include-runtime -d "$TMP/engine-tests.jar" >/dev/null
 
 for cls in \
@@ -104,7 +104,9 @@ for cls in \
   RC3ValidationSpecKt \
   RC31TechniqueSpecKt \
   RC32ScheduleSpecKt \
-  RC32AdaptiveTrainingSpecKt; do
+  RC32AdaptiveTrainingSpecKt \
+  RC33StudyCircuitSpecKt \
+  RC33ReadingSpecKt; do
   "$JAVA" -cp "$TMP/engine-tests.jar" "$cls"
 done
 

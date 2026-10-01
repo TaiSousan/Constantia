@@ -2,6 +2,9 @@ package br.com.taina.constantia.core.focusgate
 
 import android.content.Context
 import android.content.Intent
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
+import android.provider.Settings
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.VpnService
@@ -26,6 +29,17 @@ class FocusGateController(
     fun prepareIntent(): Intent? = VpnService.prepare(context)
 
     fun hasVpnPermission(): Boolean = prepareIntent() == null
+
+    fun strictShieldSettingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+
+    fun isStrictShieldEnabled(): Boolean {
+        val manager = context.getSystemService(AccessibilityManager::class.java)
+        return manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).any { info ->
+            val serviceInfo = info.resolveInfo?.serviceInfo
+            serviceInfo?.packageName == context.packageName &&
+                serviceInfo.name == FocusGateAccessibilityService::class.java.name
+        }
+    }
 
     fun otherVpnIsActive(): Boolean {
         if (FocusGateRuntime.status.value.phase == FocusGateVpnPhase.ACTIVE) return false
@@ -52,7 +66,8 @@ class FocusGateController(
             if (plan.anyRuleActive) scheduleNextRecheck() else recheckScheduler.cancel()
 
             if (plan.blockedPackages.isEmpty()) {
-                stopService()
+                FocusGatePlanStore.clear(context)
+                stopVpnServiceOnly()
                 FocusGateRuntime.publish(
                     FocusGateVpnStatus(
                         phase = if (plan.anyRuleActive) FocusGateVpnPhase.READY else FocusGateVpnPhase.OFF,
@@ -67,8 +82,10 @@ class FocusGateController(
                 return@withLock
             }
 
+            FocusGatePlanStore.save(context, plan.blockedPackages, plan.blockedLabels)
+
             if (!hasVpnPermission()) {
-                stopService()
+                stopVpnServiceOnly()
                 val conflict = otherVpnIsActive()
                 FocusGateRuntime.publish(
                     FocusGateVpnStatus(
@@ -80,7 +97,11 @@ class FocusGateController(
                         message = if (conflict) {
                             "Outra VPN está ativa. Autorizar o Constantia como VPN pode substituir a VPN atual do Android."
                         } else {
-                            "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
+                            if (isStrictShieldEnabled()) {
+                                "Bloqueio de abertura ativo. Autorize também a VPN local para cortar a rede em segundo plano."
+                            } else {
+                                "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
+                            }
                         }
                     )
                 )
@@ -94,11 +115,12 @@ class FocusGateController(
     suspend fun stopNow() {
         reconcileMutex.withLock {
             recheckScheduler.cancel()
-            stopService()
+            FocusGatePlanStore.clear(context)
+            stopVpnServiceOnly()
             FocusGateRuntime.publish(
                 FocusGateVpnStatus(
                     phase = FocusGateVpnPhase.READY,
-                    message = "Portão de Foco parado manualmente. As regras continuam configuradas."
+                    message = "Portão de Foco parado manualmente. As regras continuam configuradas e voltam a valer na próxima reavaliação."
                 )
             )
         }
@@ -113,8 +135,7 @@ class FocusGateController(
         ContextCompat.startForegroundService(context, intent)
     }
 
-    private fun stopService() {
-        FocusGateVpnService.clearPersistedPlan(context)
+    private fun stopVpnServiceOnly() {
         context.stopService(Intent(context, FocusGateVpnService::class.java))
     }
 

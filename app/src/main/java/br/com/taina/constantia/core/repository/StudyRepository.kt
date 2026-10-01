@@ -56,6 +56,38 @@ class StudyRepository(
         )
     }
 
+
+    suspend fun seedCurrentSemesterCatalog(): Int {
+        val existingSubjects = dao.observeSubjects().firstValue().toMutableList()
+        val existingTopics = dao.observeTopics().firstValue().toMutableList()
+        var created = 0
+        SemesterStudyCatalog.subjects.forEach { seed ->
+            var subject = existingSubjects.firstOrNull { it.name.equals(seed.name, ignoreCase = true) }
+            if (subject == null) {
+                val id = dao.insertSubject(SubjectEntity(name = seed.name))
+                subject = SubjectEntity(id = id, name = seed.name)
+                existingSubjects += subject
+                created++
+            }
+            val subjectId = subject!!.id
+            seed.topics.forEach { topicName ->
+                val exists = existingTopics.any { it.subjectId == subjectId && it.name.equals(topicName, ignoreCase = true) }
+                if (!exists) {
+                    val id = dao.insertTopic(
+                        StudyTopicEntity(
+                            subjectId = subjectId,
+                            name = topicName,
+                            notes = "Estrutura da apostila SENAR 2025; o texto integral fica apenas no material local importado."
+                        )
+                    )
+                    existingTopics += StudyTopicEntity(id = id, subjectId = subjectId, name = topicName)
+                    created++
+                }
+            }
+        }
+        return created
+    }
+
     suspend fun addQuestion(topicId: Long, prompt: String, answer: String, date: LocalDate = LocalDate.now(), sourceLabel: String = "MANUAL"): Long {
         require(prompt.isNotBlank() && answer.isNotBlank())
         return dao.insertQuestion(

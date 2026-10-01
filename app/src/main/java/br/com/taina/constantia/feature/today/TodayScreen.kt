@@ -7,11 +7,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import br.com.taina.constantia.core.database.ActivityDefinitionEntity
 import br.com.taina.constantia.core.model.FrequencyType
 import br.com.taina.constantia.core.repository.TodayActivity
 import br.com.taina.constantia.engine.CompletionFeedbackLibrary
@@ -30,6 +34,8 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
     LaunchedEffect(Unit) { viewModel.refreshWorkout(); viewModel.refreshStudy() }
     var showAdd by remember { mutableStateOf(false) }
     var missedActivity by remember { mutableStateOf<TodayActivity?>(null) }
+    var editingActivity by remember { mutableStateOf<TodayActivity?>(null) }
+    var deletingActivity by remember { mutableStateOf<TodayActivity?>(null) }
     val done = activities.count { it.completed }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -128,8 +134,32 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
                             )
                             Column(Modifier.weight(1f)) {
                                 Text(item.definition.name, style = MaterialTheme.typography.bodyLarge)
-                                Text(item.definition.frequencyType.replace('_', ' ').lowercase(), style = MaterialTheme.typography.bodySmall)
+                                Text(activityFrequencyLabel(item.definition), style = MaterialTheme.typography.bodySmall)
                                 if (item.missed) Text("Não feita · ${item.failureReason}", style = MaterialTheme.typography.labelSmall)
+                            }
+                            var menuExpanded by remember(item.definition.id) { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { menuExpanded = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Opções da atividade")
+                                }
+                                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                    DropdownMenuItem(
+                                        text = { Text("Editar") },
+                                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            editingActivity = item
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Excluir") },
+                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                                        onClick = {
+                                            menuExpanded = false
+                                            deletingActivity = item
+                                        }
+                                    )
+                                }
                             }
                         }
                         if (!item.completed) {
@@ -140,7 +170,6 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
             }
         }
     }
-
 
     missedActivity?.let { activity ->
         MissedReasonDialog(
@@ -154,9 +183,46 @@ fun TodayScreen(viewModel: TodayViewModel, onOpenTraining: () -> Unit, onOpenFoc
         )
     }
 
-    if (showAdd) AddActivityDialog(onDismiss = { showAdd = false }) { name, frequency, times, days ->
-        viewModel.addActivity(name, frequency, times, days)
-        showAdd = false
+    editingActivity?.let { activity ->
+        ActivityEditorDialog(
+            definition = activity.definition,
+            onDismiss = { editingActivity = null },
+            onSave = { name, frequency, times, days, everyXDays ->
+                viewModel.updateActivity(activity.definition, name, frequency, times, days, everyXDays)
+                editingActivity = null
+            }
+        )
+    }
+
+    deletingActivity?.let { activity ->
+        AlertDialog(
+            onDismissRequest = { deletingActivity = null },
+            title = { Text("Excluir atividade?") },
+            text = {
+                Text("${activity.definition.name} deixará de aparecer nas metas futuras. O histórico já registrado será preservado.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteActivity(activity.definition)
+                        deletingActivity = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Excluir") }
+            },
+            dismissButton = { TextButton(onClick = { deletingActivity = null }) { Text("Cancelar") } }
+        )
+    }
+
+    if (showAdd) {
+        ActivityEditorDialog(
+            definition = null,
+            onDismiss = { showAdd = false },
+            onSave = { name, frequency, times, days, everyXDays ->
+                viewModel.addActivity(name, frequency, times, days, everyXDays)
+                showAdd = false
+            }
+        )
     }
 }
 
@@ -168,6 +234,42 @@ private fun dayName(day: DayOfWeek): String = when (day) {
     DayOfWeek.FRIDAY -> "sexta-feira"
     DayOfWeek.SATURDAY -> "sábado"
     DayOfWeek.SUNDAY -> "domingo"
+}
+
+private fun shortDayName(day: DayOfWeek): String = when (day) {
+    DayOfWeek.MONDAY -> "Seg"
+    DayOfWeek.TUESDAY -> "Ter"
+    DayOfWeek.WEDNESDAY -> "Qua"
+    DayOfWeek.THURSDAY -> "Qui"
+    DayOfWeek.FRIDAY -> "Sex"
+    DayOfWeek.SATURDAY -> "Sáb"
+    DayOfWeek.SUNDAY -> "Dom"
+}
+
+private fun frequencyLabel(type: FrequencyType): String = when (type) {
+    FrequencyType.DAILY -> "Todos os dias"
+    FrequencyType.SPECIFIC_DAYS -> "Dias específicos"
+    FrequencyType.TIMES_PER_WEEK -> "Vezes por semana"
+    FrequencyType.TIMES_PER_MONTH -> "Vezes por mês"
+    FrequencyType.EVERY_X_DAYS -> "A cada X dias"
+    FrequencyType.ONCE -> "Uma vez"
+}
+
+private fun activityFrequencyLabel(definition: ActivityDefinitionEntity): String {
+    val type = runCatching { FrequencyType.valueOf(definition.frequencyType) }.getOrNull() ?: return definition.frequencyType
+    return when (type) {
+        FrequencyType.DAILY -> "Todos os dias"
+        FrequencyType.SPECIFIC_DAYS -> definition.specificDaysCsv
+            .split(',')
+            .mapNotNull { it.trim().toIntOrNull()?.takeIf { value -> value in 1..7 } }
+            .map { shortDayName(DayOfWeek.of(it)) }
+            .joinToString(" · ")
+            .ifBlank { "Dias específicos" }
+        FrequencyType.TIMES_PER_WEEK -> "${definition.timesPerPeriod}x por semana"
+        FrequencyType.TIMES_PER_MONTH -> "${definition.timesPerPeriod}x por mês"
+        FrequencyType.EVERY_X_DAYS -> "A cada ${definition.everyXDays.coerceAtLeast(1)} dia(s)"
+        FrequencyType.ONCE -> "Uma vez"
+    }
 }
 
 @Composable
@@ -204,47 +306,103 @@ private fun MissedReasonDialog(
 }
 
 @Composable
-private fun AddActivityDialog(
+private fun ActivityEditorDialog(
+    definition: ActivityDefinitionEntity?,
     onDismiss: () -> Unit,
-    onSave: (String, FrequencyType, Int, Set<DayOfWeek>) -> Unit
+    onSave: (String, FrequencyType, Int, Set<DayOfWeek>, Int) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var frequency by remember { mutableStateOf(FrequencyType.DAILY) }
-    var times by remember { mutableStateOf("3") }
+    val initialFrequency = remember(definition?.id) {
+        definition?.frequencyType?.let { value -> runCatching { FrequencyType.valueOf(value) }.getOrNull() } ?: FrequencyType.DAILY
+    }
+    var name by remember(definition?.id) { mutableStateOf(definition?.name.orEmpty()) }
+    var frequency by remember(definition?.id) { mutableStateOf(initialFrequency) }
+    var times by remember(definition?.id) { mutableStateOf((definition?.timesPerPeriod ?: 3).coerceAtLeast(1).toString()) }
+    var everyXDays by remember(definition?.id) { mutableStateOf((definition?.everyXDays ?: 2).coerceAtLeast(1).toString()) }
     var expanded by remember { mutableStateOf(false) }
-    val selectedDays = remember { mutableStateListOf<DayOfWeek>() }
+    val selectedDays = remember(definition?.id) {
+        mutableStateListOf<DayOfWeek>().also { list ->
+            definition?.specificDaysCsv
+                ?.split(',')
+                ?.mapNotNull { it.trim().toIntOrNull()?.takeIf { value -> value in 1..7 } }
+                ?.mapTo(list) { DayOfWeek.of(it) }
+        }
+    }
+    val validDays = frequency != FrequencyType.SPECIFIC_DAYS || selectedDays.isNotEmpty()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nova atividade") },
+        title = { Text(if (definition == null) "Nova atividade" else "Editar atividade") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("Nome") }, singleLine = true)
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                     OutlinedTextField(
-                        value = frequency.name.replace('_', ' '), onValueChange = {}, readOnly = true,
+                        value = frequencyLabel(frequency), onValueChange = {}, readOnly = true,
                         label = { Text("Frequência") },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        FrequencyType.entries.forEach { f -> DropdownMenuItem(text = { Text(f.name.replace('_', ' ')) }, onClick = { frequency = f; expanded = false }) }
+                        FrequencyType.entries.forEach { item ->
+                            DropdownMenuItem(
+                                text = { Text(frequencyLabel(item)) },
+                                onClick = { frequency = item; expanded = false }
+                            )
+                        }
                     }
                 }
                 if (frequency == FrequencyType.TIMES_PER_WEEK || frequency == FrequencyType.TIMES_PER_MONTH) {
-                    OutlinedTextField(times, { times = it }, label = { Text("Vezes no período") }, singleLine = true)
+                    OutlinedTextField(
+                        times,
+                        { times = it.filter(Char::isDigit).take(2) },
+                        label = { Text("Vezes no período") },
+                        singleLine = true
+                    )
+                }
+                if (frequency == FrequencyType.EVERY_X_DAYS) {
+                    OutlinedTextField(
+                        everyXDays,
+                        { everyXDays = it.filter(Char::isDigit).take(3) },
+                        label = { Text("Repetir a cada quantos dias") },
+                        singleLine = true
+                    )
                 }
                 if (frequency == FrequencyType.SPECIFIC_DAYS) {
                     Text("Dias")
                     DayOfWeek.values().forEach { day ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = day in selectedDays, onCheckedChange = { checked -> if (checked) selectedDays.add(day) else selectedDays.remove(day) })
-                            Text(day.name)
+                            Checkbox(
+                                checked = day in selectedDays,
+                                onCheckedChange = { checked ->
+                                    if (checked && day !in selectedDays) selectedDays.add(day)
+                                    if (!checked) selectedDays.remove(day)
+                                }
+                            )
+                            Text(dayName(day).replaceFirstChar { it.uppercase() })
                         }
                     }
                 }
+                if (definition != null) {
+                    Text(
+                        "Editar não apaga registros anteriores. Se a frequência mudar, o novo ciclo começa hoje.",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         },
-        confirmButton = { Button(onClick = { onSave(name, frequency, times.toIntOrNull() ?: 1, selectedDays.toSet()) }, enabled = name.isNotBlank()) { Text("Salvar") } },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        name,
+                        frequency,
+                        times.toIntOrNull()?.coerceAtLeast(1) ?: 1,
+                        selectedDays.toSet(),
+                        everyXDays.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                    )
+                },
+                enabled = name.isNotBlank() && validDays
+            ) { Text("Salvar") }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
 }

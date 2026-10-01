@@ -78,6 +78,21 @@ class ActivityRepository(
 
     suspend fun addDefinition(definition: ActivityDefinitionEntity): Long = dao.insertDefinition(definition)
 
+    suspend fun updateDefinition(definition: ActivityDefinitionEntity) {
+        require(definition.id > 0)
+        require(definition.name.isNotBlank())
+        dao.upsertDefinition(definition.copy(name = definition.name.trim()))
+    }
+
+    /**
+     * Soft-delete: the definition stops appearing in future schedules, but its
+     * historical occurrences remain linked to the same id.
+     */
+    suspend fun deactivateDefinition(activityId: Long) {
+        require(activityId > 0)
+        dao.deactivateDefinition(activityId)
+    }
+
     suspend fun setCompleted(activityId: Long, date: LocalDate, completed: Boolean) {
         val epoch = date.toEpochDay()
         val current = dao.findOccurrence(activityId, epoch)

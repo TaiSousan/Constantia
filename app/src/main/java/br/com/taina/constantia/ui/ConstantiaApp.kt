@@ -24,6 +24,8 @@ import br.com.taina.constantia.feature.nutrition.NutritionScreen
 import br.com.taina.constantia.feature.nutrition.NutritionViewModel
 import br.com.taina.constantia.feature.progress.ProgressScreen
 import br.com.taina.constantia.feature.progress.ProgressViewModel
+import br.com.taina.constantia.feature.reading.ReadingScreen
+import br.com.taina.constantia.feature.reading.ReadingViewModel
 
 enum class MainDestination(val route: String, val label: String, val icon: ImageVector) {
     Today("today", "Hoje", Icons.Default.Today),
@@ -62,6 +64,8 @@ fun ConstantiaApp(container: AppContainer) {
     }
 }
 
+private const val READING_ROUTE = "reading"
+
 @Composable
 private fun MainShell(container: AppContainer) {
     val navController = rememberNavController()
@@ -71,9 +75,10 @@ private fun MainShell(container: AppContainer) {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                destinations.forEach { destination ->
-                    NavigationBarItem(
+            if (route in destinations.map { it.route }) {
+                NavigationBar {
+                    destinations.forEach { destination ->
+                        NavigationBarItem(
                         selected = route == destination.route,
                         onClick = {
                             navController.navigate(destination.route) {
@@ -84,7 +89,8 @@ private fun MainShell(container: AppContainer) {
                         },
                         icon = { Icon(destination.icon, contentDescription = destination.label) },
                         label = { Text(destination.label) }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -104,7 +110,7 @@ private fun MainShell(container: AppContainer) {
                 TrainingScreen(vm)
             }
             composable(MainDestination.Focus.route) {
-                val vm: FocusViewModel = viewModel(factory = FocusViewModel.Factory(container.studyRepository, container.focusGateController))
+                val vm: FocusViewModel = viewModel(factory = FocusViewModel.Factory(container.studyRepository, container.focusGateController, container.preferences, container.studyMaterialStore))
                 val contextVm: ContextSettingsViewModel = viewModel(
                     factory = ContextSettingsViewModel.Factory(
                         container.preferences,
@@ -113,7 +119,7 @@ private fun MainShell(container: AppContainer) {
                         container.focusGateController
                     )
                 )
-                FocusScreen(vm, contextVm)
+                FocusScreen(vm, contextVm, onOpenReading = { navController.navigate(READING_ROUTE) { launchSingleTop = true } })
             }
             composable(MainDestination.Nutrition.route) {
                 val vm: NutritionViewModel = viewModel(factory = NutritionViewModel.Factory(container.nutritionRepository))
@@ -122,6 +128,10 @@ private fun MainShell(container: AppContainer) {
             composable(MainDestination.Progress.route) {
                 val vm: ProgressViewModel = viewModel(factory = ProgressViewModel.Factory(container.progressRepository))
                 ProgressScreen(vm)
+            }
+            composable(READING_ROUTE) {
+                val vm: ReadingViewModel = viewModel(factory = ReadingViewModel.Factory(container.readingLibraryStore))
+                ReadingScreen(vm, onBack = { navController.popBackStack() })
             }
         }
     }

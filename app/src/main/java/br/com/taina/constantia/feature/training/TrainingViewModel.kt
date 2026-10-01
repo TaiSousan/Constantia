@@ -10,6 +10,10 @@ import br.com.taina.constantia.core.repository.*
 import br.com.taina.constantia.engine.TrainingScheduleEngine
 import br.com.taina.constantia.engine.CompletionFeedbackLibrary
 import br.com.taina.constantia.engine.TrainingCycleReview
+import br.com.taina.constantia.engine.CircuitEquipment
+import br.com.taina.constantia.engine.CircuitPurpose
+import br.com.taina.constantia.engine.CircuitSuggestion
+import br.com.taina.constantia.engine.CircuitWorkoutEngine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +40,7 @@ data class TrainingUiState(
     val experienceLevel: String = "INTERMEDIATE",
     val cycleReview: TrainingCycleReview? = null,
     val planProposal: TrainingPlanProposal? = null,
+    val circuitSuggestion: CircuitSuggestion? = null,
     val substitutionForId: Long? = null,
     val substitutionCandidates: List<ExerciseEntity> = emptyList(),
     val message: String? = null,
@@ -46,7 +51,8 @@ data class TrainingUiState(
 class TrainingViewModel(
     private val repository: TrainingRepository,
     private val focusGateController: FocusGateController,
-    private val scheduleEngine: TrainingScheduleEngine = TrainingScheduleEngine()
+    private val scheduleEngine: TrainingScheduleEngine = TrainingScheduleEngine(),
+    private val circuitEngine: CircuitWorkoutEngine = CircuitWorkoutEngine()
 ) : ViewModel() {
     private val _state = MutableStateFlow(TrainingUiState())
     val state: StateFlow<TrainingUiState> = _state.asStateFlow()
@@ -237,6 +243,20 @@ class TrainingViewModel(
                 _state.value = _state.value.copy(error = it.message ?: "Não foi possível salvar a disponibilidade.")
             }
         }
+    }
+
+    fun buildCircuit(minutes: Int, equipment: Set<CircuitEquipment>, purpose: CircuitPurpose) {
+        val suggestion = circuitEngine.build(
+            minutes = minutes,
+            equipment = equipment,
+            purpose = purpose,
+            restrictions = _state.value.restrictions
+        )
+        _state.value = _state.value.copy(circuitSuggestion = suggestion, message = null, error = null)
+    }
+
+    fun clearCircuit() {
+        _state.value = _state.value.copy(circuitSuggestion = null)
     }
 
     fun buildCyclePlanProposal() {

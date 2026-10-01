@@ -7,6 +7,8 @@ import br.com.taina.constantia.core.repository.ActivityRepository
 import br.com.taina.constantia.core.repository.ProfileRepository
 import br.com.taina.constantia.core.repository.TrainingRepository
 import br.com.taina.constantia.core.repository.StudyRepository
+import br.com.taina.constantia.core.repository.StudyMaterialStore
+import br.com.taina.constantia.core.repository.ReadingLibraryStore
 import br.com.taina.constantia.core.repository.ContextualRepository
 import br.com.taina.constantia.core.repository.NutritionRepository
 import br.com.taina.constantia.core.repository.ProgressRepository
@@ -20,6 +22,8 @@ class AppContainer(context: Context) {
     val activityRepository = ActivityRepository(database.activityDao())
     val trainingRepository = TrainingRepository(database.trainingDao(), database.profileDao())
     val studyRepository = StudyRepository(database.studyDao())
+    val studyMaterialStore = StudyMaterialStore(context.applicationContext)
+    val readingLibraryStore = ReadingLibraryStore(context.applicationContext)
     val contextualRepository = ContextualRepository(database.contextualDao(), database.trainingDao(), database.studyDao())
     val nutritionRepository = NutritionRepository(database.nutritionDao(), database.profileDao())
     val progressRepository = ProgressRepository(database.profileDao(), database.activityDao(), database.trainingDao(), database.studyDao())

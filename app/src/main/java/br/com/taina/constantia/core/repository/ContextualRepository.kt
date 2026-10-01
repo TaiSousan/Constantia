@@ -24,9 +24,20 @@ class ContextualRepository(
     val gateRules: Flow<List<FocusGateRuleEntity>> = dao.observeGateRules()
 
     suspend fun seedDefaults() {
-        if (dao.gateRuleCount() > 0) return
-        dao.insertGateRule(FocusGateRuleEntity(appLabel = "Instagram", packageName = "com.instagram.android"))
-        dao.insertGateRule(FocusGateRuleEntity(appLabel = "Discord", packageName = "com.discord"))
+        val defaults = listOf(
+            "Instagram" to "com.instagram.android",
+            "Discord" to "com.discord",
+            "TikTok" to "com.zhiliaoapp.musically",
+            "Facebook" to "com.facebook.katana",
+            "X" to "com.twitter.android",
+            "Threads" to "com.instagram.barcelona",
+            "Reddit" to "com.reddit.frontpage",
+            "YouTube" to "com.google.android.youtube"
+        )
+        val existing = dao.getGateRules().map { it.packageName }.toSet()
+        defaults.filterNot { (_, packageName) -> packageName in existing }.forEach { (label, packageName) ->
+            dao.insertGateRule(FocusGateRuleEntity(appLabel = label, packageName = packageName))
+        }
     }
 
     suspend fun insertScheduledNotification(item: NotificationEventEntity): Long = dao.insertNotification(item)

@@ -92,7 +92,13 @@ class TodayViewModel(
         viewModelScope.launch { repository.markMissed(activity.definition.id, today, reason) }
     }
 
-    fun addActivity(name: String, frequency: FrequencyType, times: Int, days: Set<DayOfWeek>) {
+    fun addActivity(
+        name: String,
+        frequency: FrequencyType,
+        times: Int,
+        days: Set<DayOfWeek>,
+        everyXDays: Int
+    ) {
         if (name.isBlank()) return
         viewModelScope.launch {
             repository.addDefinition(
@@ -101,13 +107,44 @@ class TodayViewModel(
                     category = ActivityCategory.OBLIGATION.name,
                     frequencyType = frequency.name,
                     timesPerPeriod = times.coerceAtLeast(1),
-                    specificDaysCsv = days.joinToString(",") { it.value.toString() },
+                    specificDaysCsv = days.sortedBy { it.value }.joinToString(",") { it.value.toString() },
                     anchorEpochDay = today.toEpochDay(),
+                    everyXDays = everyXDays.coerceAtLeast(1),
                     priority = ActivityPriority.REQUIRED.name,
                     missedPolicy = MissedPolicy.ASK.name
                 )
             )
         }
+    }
+
+    fun updateActivity(
+        definition: ActivityDefinitionEntity,
+        name: String,
+        frequency: FrequencyType,
+        times: Int,
+        days: Set<DayOfWeek>,
+        everyXDays: Int
+    ) {
+        if (definition.id <= 0 || name.isBlank()) return
+        viewModelScope.launch {
+            val frequencyChanged = definition.frequencyType != frequency.name
+            repository.updateDefinition(
+                definition.copy(
+                    name = name.trim(),
+                    frequencyType = frequency.name,
+                    timesPerPeriod = times.coerceAtLeast(1),
+                    specificDaysCsv = days.sortedBy { it.value }.joinToString(",") { it.value.toString() },
+                    everyXDays = everyXDays.coerceAtLeast(1),
+                    anchorEpochDay = if (frequencyChanged) today.toEpochDay() else definition.anchorEpochDay,
+                    active = true
+                )
+            )
+        }
+    }
+
+    fun deleteActivity(definition: ActivityDefinitionEntity) {
+        if (definition.id <= 0) return
+        viewModelScope.launch { repository.deactivateDefinition(definition.id) }
     }
 
     class Factory(
