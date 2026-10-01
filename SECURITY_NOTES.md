@@ -39,3 +39,12 @@ Criptografia adicional do banco foi evitada neste RC por aumentar dependências 
 - O plano compartilhado do Portão armazena somente nomes de pacote e rótulos em `SharedPreferences` privados.
 - O estado de bloqueio não adiciona `QUERY_ALL_PACKAGES`; a visibilidade continua limitada a uma lista finita de apps de distração conhecidos.
 - Se o Constantia for distribuído pelo Google Play, o uso não assistivo da Accessibility API exige declaração apropriada, divulgação destacada e consentimento conforme a política vigente da Play Console.
+
+
+## RC3.3.1 — compatibilidade com instalação por sideload
+
+- A camada de bloqueio por `AccessibilityService` foi removida do Manifest e do código empacotado.
+- O Portão de Foco permanece funcional como VPN local seletiva, descartando apenas o tráfego dos apps bloqueados.
+- A mudança evita solicitar/registrar Acessibilidade em um APK instalado fora da Play Store.
+- O app continua sem `android.permission.INTERNET`, sem permissões amplas de armazenamento e com Room v6.
+- Nenhum dado histórico é migrado ou apagado por este hotfix.

@@ -2,9 +2,6 @@ package br.com.taina.constantia.core.focusgate
 
 import android.content.Context
 import android.content.Intent
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.view.accessibility.AccessibilityManager
-import android.provider.Settings
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.VpnService
@@ -29,17 +26,6 @@ class FocusGateController(
     fun prepareIntent(): Intent? = VpnService.prepare(context)
 
     fun hasVpnPermission(): Boolean = prepareIntent() == null
-
-    fun strictShieldSettingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-
-    fun isStrictShieldEnabled(): Boolean {
-        val manager = context.getSystemService(AccessibilityManager::class.java)
-        return manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).any { info ->
-            val serviceInfo = info.resolveInfo?.serviceInfo
-            serviceInfo?.packageName == context.packageName &&
-                serviceInfo.name == FocusGateAccessibilityService::class.java.name
-        }
-    }
 
     fun otherVpnIsActive(): Boolean {
         if (FocusGateRuntime.status.value.phase == FocusGateVpnPhase.ACTIVE) return false
@@ -97,11 +83,7 @@ class FocusGateController(
                         message = if (conflict) {
                             "Outra VPN está ativa. Autorizar o Constantia como VPN pode substituir a VPN atual do Android."
                         } else {
-                            if (isStrictShieldEnabled()) {
-                                "Bloqueio de abertura ativo. Autorize também a VPN local para cortar a rede em segundo plano."
-                            } else {
-                                "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
-                            }
+                            "Autorize a VPN local do Constantia para efetivar o bloqueio de rede."
                         }
                     )
                 )

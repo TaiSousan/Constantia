@@ -340,3 +340,12 @@ A RC2 serviu como primeiro APK de teste. A RC3/RC3.1 incorpora os ajustes encont
 - circuitos podem ser usados como alternativa ao cardio opcional ou como sessão extra curta, mas não entram na progressão da ficha nem substituem automaticamente o treino programado;
 - restrições estruturadas de movimento continuam sendo respeitadas ao montar os circuitos;
 - permanece sem permissão `INTERNET` e sem permissões amplas de armazenamento.
+
+
+## 1.0 RC3.3.1 — hotfix de instalação
+
+- `versionName`: `1.0.0-rc3.3.1` (`versionCode = 16`);
+- remove do APK o `AccessibilityService` experimental do Portão de Foco para melhorar a compatibilidade com instalação por sideload e Play Protect;
+- o Portão de Foco continua usando VPN local seletiva para cortar a rede dos apps configurados;
+- biblioteca de leitura, Pomodoro com descanso, apostilas locais, circuitos, edição de metas e demais recursos da RC3.3 permanecem;
+- Room permanece na versão 6, sem migração e sem perda de histórico.

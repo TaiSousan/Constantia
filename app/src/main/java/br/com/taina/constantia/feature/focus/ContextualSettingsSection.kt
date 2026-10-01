@@ -25,7 +25,6 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
     val rules by viewModel.gateRules.collectAsState()
     val statuses by viewModel.gateStatuses.collectAsState()
     val vpnStatus by viewModel.vpnStatus.collectAsState()
-    val strictShieldEnabled by viewModel.strictShieldEnabled.collectAsState()
     val context = LocalContext.current
     var permissionGranted by remember {
         mutableStateOf(
@@ -40,9 +39,6 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
     }
     val vpnPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         viewModel.onVpnPermissionResult(result.resultCode == Activity.RESULT_OK)
-    }
-    val strictShieldLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        viewModel.refreshFocusGate()
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -87,19 +83,12 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
         )
 
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Bloqueio de abertura · opcional", style = MaterialTheme.typography.titleMedium)
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Bloqueio de rede", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Para impedir que um app bloqueado chegue a abrir, o Android exige o serviço de Acessibilidade. O Constantia usa apenas o nome do aplicativo que está em primeiro plano para aplicar a regra; não lê textos, campos, notificações, imagens ou conteúdo da tela e não envia esses dados para fora do aparelho.",
+                    "Nesta versão, o Portão de Foco usa somente a VPN local seletiva. Isso evita a permissão de Acessibilidade e mantém a instalação mais compatível com as proteções do Android. O app bloqueado ainda pode abrir, mas seu tráfego de rede é descartado enquanto a regra estiver ativa.",
                     style = MaterialTheme.typography.bodySmall
                 )
-                Text(
-                    if (strictShieldEnabled) "Proteção estrita ativada no Android." else "Proteção estrita desativada. O bloqueio atual atua somente na rede.",
-                    style = MaterialTheme.typography.labelLarge
-                )
-                OutlinedButton(onClick = { strictShieldLauncher.launch(viewModel.strictShieldSettingsIntent()) }) {
-                    Text(if (strictShieldEnabled) "Revisar Acessibilidade" else "Ativar bloqueio de abertura")
-                }
             }
         }
 
@@ -138,7 +127,7 @@ fun ContextualSettingsSection(viewModel: ContextSettingsViewModel) {
                         Text("Parar bloqueio agora")
                     }
                     Text(
-                        "Interrompe as camadas de bloqueio imediatamente. As regras continuam salvas e podem ser reativadas na próxima reavaliação; para manter desligado, desative os respectivos switches.",
+                        "Interrompe a VPN local imediatamente. As regras continuam salvas e podem ser reativadas na próxima reavaliação; para manter desligado, desative os respectivos switches.",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

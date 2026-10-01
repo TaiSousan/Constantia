@@ -31,8 +31,8 @@ check('compileSdk = 37' in app_build, 'compileSdk 37')
 check('targetSdk = 37' in app_build, 'targetSdk 37')
 check('minSdk = 26' in app_build, 'minSdk 26')
 check('JavaVersion.VERSION_17' in app_build, 'Java 17 bytecode')
-check('versionName = "1.0.0-rc3.3"' in app_build, 'versionName 1.0.0-rc3.3')
-check('versionCode = 15' in app_build, 'versionCode 15')
+check('versionName = "1.0.0-rc3.3.1"' in app_build, 'versionName 1.0.0-rc3.3.1')
+check('versionCode = 16' in app_build, 'versionCode 16')
 check('gradle-9.6.0-bin.zip' in wrapper, 'Gradle 9.6.0 distribution')
 check('distributionSha256Sum=' in wrapper, 'Gradle distribution checksum pinned')
 check('version = 6' in db, 'Room schema version 6')
@@ -105,11 +105,9 @@ check('Editar atividade' in today_screen and 'Excluir atividade?' in today_scree
 controller=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGateController.kt')
 service=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGateVpnService.kt')
 plan_store=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGatePlanStore.kt')
-strict_service=text('app/src/main/java/br/com/taina/constantia/core/focusgate/FocusGateAccessibilityService.kt')
 check('FocusGatePlanStore.clear(context)' in controller, 'Focus Gate clears shared blocking plan on explicit stop')
-check('FocusGatePlanStore.save(context' in controller, 'Focus Gate shares blocked packages across both protection layers')
+check('FocusGatePlanStore.save(context' in controller, 'Focus Gate persists blocked packages for VPN runtime recovery')
 check('discardedBytes' in service, 'Focus Gate exposes intercepted-byte diagnostics')
-check('event.packageName' in strict_service and 'TYPE_WINDOW_STATE_CHANGED' in strict_service, 'Strict shield reacts only to foreground-window package changes')
 
 
 manifest_text=text('app/src/main/AndroidManifest.xml')
@@ -121,12 +119,14 @@ check('cleartextTrafficPermitted="false"' in security_config, 'Network Security 
 check('android.permission.INTERNET' not in manifest_text, 'Sem permissão INTERNET (local-first)')
 check('READ_EXTERNAL_STORAGE' not in manifest_text and 'WRITE_EXTERNAL_STORAGE' not in manifest_text and 'MANAGE_EXTERNAL_STORAGE' not in manifest_text, 'Sem permissões amplas de armazenamento externo')
 check('android:permission="android.permission.BIND_VPN_SERVICE"' in manifest_text, 'VpnService protegido por BIND_VPN_SERVICE')
-accessibility_config=text('app/src/main/res/xml/focus_gate_accessibility_service.xml')
-check('android.permission.BIND_ACCESSIBILITY_SERVICE' in manifest_text, 'Bloqueio estrito protegido por BIND_ACCESSIBILITY_SERVICE')
-check('android:canRetrieveWindowContent="false"' in accessibility_config, 'Acessibilidade sem leitura de conteúdo de tela')
-check('android:canPerformGestures="false"' in accessibility_config, 'Acessibilidade sem automação de gestos')
-check('android:canTakeScreenshot="false"' in accessibility_config, 'Acessibilidade sem captura de tela')
+check('android.permission.BIND_ACCESSIBILITY_SERVICE' not in manifest_text, 'Sem serviço/permissão de Acessibilidade no hotfix de sideload')
 check('QUERY_ALL_PACKAGES' not in manifest_text, 'Sem visibilidade ampla de apps (QUERY_ALL_PACKAGES)')
+accessibility_api_refs=[]
+for p in (ROOT/'app/src/main/java').rglob('*.kt'):
+    src=p.read_text(encoding='utf-8')
+    if 'android.accessibilityservice.AccessibilityService' in src or 'BIND_ACCESSIBILITY_SERVICE' in src:
+        accessibility_api_refs.append(str(p.relative_to(ROOT)))
+check(not accessibility_api_refs, 'Sem API Android AccessibilityService empacotada no hotfix')
 check(manifest_text.count('android:exported="false"') >= 4, 'Receivers/serviço interno não exportados')
 
 try:
@@ -154,7 +154,7 @@ check(not missing_optin, 'Material3 exposed-menu opt-ins present')
 wrapper_jar=ROOT/'gradle/wrapper/gradle-wrapper.jar'
 check(wrapper_jar.exists(), 'Gradle wrapper JAR ausente; o workflow CI usa Gradle 9.6 instalado diretamente', warning=True)
 
-print('Constantia 1.0 RC3.3 preflight')
+print('Constantia 1.0 RC3.3.1 preflight')
 for x in ok: print(f'  OK   {x}')
 for x in warnings: print(f'  WARN {x}')
 for x in errors: print(f'  FAIL {x}')
